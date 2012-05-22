@@ -3433,12 +3433,12 @@ fi],
 [AC_MSG_RESULT(default LIBC="$LIBC")])
 
 # check for --with-gasnet=...
-AC_SUBST(GASNET)
-AC_MSG_CHECKING(for --with-gasnet=STRING)
+AC_MSG_CHECKING(for --with-gasnet=PATH)
 AC_ARG_WITH(gasnet,
-            AS_HELP_STRING([--with-gasnet=STRING], [GASNet installation]),
-[AC_MSG_RESULT(set GASNET="$withval")],
-[AC_MSG_RESULT(default GASNET="$GASNET")])
+    AS_HELP_STRING([--with-gasnet=PATH], [GASNet installation]),
+    AC_SUBST(GASNET_PATH,[$withval]),
+    AC_SUBST(GASNET_PATH,[/usr/local/gasnet])
+)
 
 # **************************************************
 # * Check for various properties of floating point *

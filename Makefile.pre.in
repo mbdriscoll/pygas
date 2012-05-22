@@ -66,8 +66,8 @@ CFLAGS=		$(BASECFLAGS) @CFLAGS@ $(OPT) $(EXTRA_CFLAGS)
 # Both CPPFLAGS and LDFLAGS need to contain the shell's value for setup.py to
 # be able to build extension modules using the directories specified in the
 # environment variables
-CPPFLAGS=	-I. -IInclude -I$(srcdir)/Include @CPPFLAGS@
-LDFLAGS=	@LDFLAGS@
+CPPFLAGS=	-I. -IInclude -I$(srcdir)/Include @CPPFLAGS@ -I@GASNET_PATH@/include -I@GASNET_PATH@/include/smp-conduit
+LDFLAGS=	@LDFLAGS@ -L@GASNET_PATH@/lib
 LDLAST=		@LDLAST@
 SGI_ABI=	@SGI_ABI@
 CCSHARED=	@CCSHARED@

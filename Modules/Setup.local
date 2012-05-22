@@ -1,0 +1,2 @@
+# Edit this file for local setup changes
+gasnet gasnet.o -lgasnet-smp-par

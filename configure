@@ -627,7 +627,7 @@ ac_subst_vars='LTLIBOBJS
 SRCDIRS
 THREADHEADERS
 UNICODE_OBJS
-GASNET
+GASNET_PATH
 LIBC
 LIBM
 HAVE_GETHOSTBYNAME
@@ -1461,7 +1461,7 @@ Optional Packages:
   --with-fpectl           enable SIGFPE catching
   --with-libm=STRING      math library
   --with-libc=STRING      C library
-  --with-gasnet=STRING    GASNet installation
+  --with-gasnet=PATH      GASNet installation
 
 Some influential environment variables:
   CC          C compiler command
@@ -11914,17 +11914,17 @@ fi
 
 
 # check for --with-gasnet=...
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for --with-gasnet=STRING" >&5
-$as_echo_n "checking for --with-gasnet=STRING... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for --with-gasnet=PATH" >&5
+$as_echo_n "checking for --with-gasnet=PATH... " >&6; }
 
 # Check whether --with-gasnet was given.
 if test "${with_gasnet+set}" = set; then :
-  withval=$with_gasnet; { $as_echo "$as_me:${as_lineno-$LINENO}: result: set GASNET=\"$withval\"" >&5
-$as_echo "set GASNET=\"$withval\"" >&6; }
+  withval=$with_gasnet; GASNET_PATH=$withval
+
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: default GASNET=\"$GASNET\"" >&5
-$as_echo "default GASNET=\"$GASNET\"" >&6; }
+  GASNET_PATH=/usr/local/gasnet
+
+
 fi
 
 
