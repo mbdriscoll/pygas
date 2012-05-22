@@ -16,6 +16,13 @@ _gasnet_init(PyObject *self, PyObject *args)
 }
 
 static PyObject *
+_gasnet_attach(PyObject *self, PyObject *args)
+{
+    int status = gasnet_attach(NULL, 0, gasnet_getMaxLocalSegmentSize(), GASNET_PAGESIZE);
+    return Py_BuildValue("i", status);
+}
+
+static PyObject *
 _gasnet_exit(PyObject *self, PyObject *args)
 {
     gasnet_exit(0);
@@ -37,8 +44,9 @@ _gasnet_nodes(PyObject *self, PyObject *args)
 }
 
 static PyMethodDef gasnet_methods[] = {
-    {"init",    _gasnet_init,    METH_VARARGS, "Initialize GASNet runtime."},
+    {"init",    _gasnet_init,    METH_VARARGS, "Bootstrap GASNet job."},
     {"exit",    _gasnet_exit,    METH_VARARGS, "Terminate GASNet runtime."},
+    {"attach",  _gasnet_attach,  METH_NOARGS,  "Initialize and setup node."},
     {"nodes",   _gasnet_nodes,   METH_VARARGS, "Number of nodes in job."},
     {"mynode",  _gasnet_mynode,  METH_VARARGS, "Index of current node in job."},
     {NULL,      NULL}           /* sentinel */
