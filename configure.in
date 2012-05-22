@@ -3432,6 +3432,14 @@ else AC_MSG_ERROR([proper usage is --with-libc=STRING])
 fi],
 [AC_MSG_RESULT(default LIBC="$LIBC")])
 
+# check for --with-gasnet=...
+AC_SUBST(GASNET)
+AC_MSG_CHECKING(for --with-gasnet=STRING)
+AC_ARG_WITH(gasnet,
+            AS_HELP_STRING([--with-gasnet=STRING], [GASNet installation]),
+[AC_MSG_RESULT(set GASNET="$withval")],
+[AC_MSG_RESULT(default GASNET="$GASNET")])
+
 # **************************************************
 # * Check for various properties of floating point *
 # **************************************************
