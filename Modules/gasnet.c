@@ -51,12 +51,25 @@ _gasnet_nodes(PyObject *self, PyObject *args)
     return Py_BuildValue("i", ranks);
 }
 
+static PyObject *
+_gasnet_getenv(PyObject *self, PyObject *args)
+{
+    int ok;
+    const char *key, *value;
+    ok = PyArg_ParseTuple(args, "s", &key);
+
+    value = gasnet_getenv(key);
+
+    return Py_BuildValue("s", value);
+}
+
 static PyMethodDef gasnet_methods[] = {
     {"init",    _gasnet_init,    METH_VARARGS, "Bootstrap GASNet job."},
     {"exit",    _gasnet_exit,    METH_VARARGS, "Terminate GASNet runtime."},
     {"attach",  _gasnet_attach,  METH_NOARGS,  "Initialize and setup node."},
     {"nodes",   _gasnet_nodes,   METH_VARARGS, "Number of nodes in job."},
     {"mynode",  _gasnet_mynode,  METH_VARARGS, "Index of current node in job."},
+    {"getenv",  _gasnet_getenv,  METH_VARARGS, "Query environment when job was spawned."},
     {NULL,      NULL}           /* sentinel */
 };
 
