@@ -4,7 +4,7 @@
 #include "gasnet.h"
 
 static PyObject *
-_gasnet_init(PyObject *self, PyObject *args)
+py_gasnet_init(PyObject *self, PyObject *args)
 {
     int argc = 5;
     char **argv = (char**) malloc(argc * sizeof(char*));
@@ -19,14 +19,14 @@ _gasnet_init(PyObject *self, PyObject *args)
 }
 
 static PyObject *
-_gasnet_attach(PyObject *self, PyObject *args)
+py_gasnet_attach(PyObject *self, PyObject *args)
 {
     int status = gasnet_attach(NULL, 0, gasnet_getMaxLocalSegmentSize(), GASNET_PAGESIZE);
     return Py_BuildValue("i", status);
 }
 
 static PyObject *
-_gasnet_exit(PyObject *self, PyObject *args)
+py_gasnet_exit(PyObject *self, PyObject *args)
 {
     int ok;
     int exitcode = 0;
@@ -38,21 +38,21 @@ _gasnet_exit(PyObject *self, PyObject *args)
 }
 
 static PyObject *
-_gasnet_mynode(PyObject *self, PyObject *args)
+py_gasnet_mynode(PyObject *self, PyObject *args)
 {
     gasnet_node_t rank = gasnet_mynode();
     return Py_BuildValue("i", rank);
 }
 
 static PyObject *
-_gasnet_nodes(PyObject *self, PyObject *args)
+py_gasnet_nodes(PyObject *self, PyObject *args)
 {
     gasnet_node_t ranks = gasnet_nodes();
     return Py_BuildValue("i", ranks);
 }
 
 static PyObject *
-_gasnet_getenv(PyObject *self, PyObject *args)
+py_gasnet_getenv(PyObject *self, PyObject *args)
 {
     int ok;
     const char *key, *value;
@@ -64,12 +64,12 @@ _gasnet_getenv(PyObject *self, PyObject *args)
 }
 
 static PyMethodDef gasnet_methods[] = {
-    {"init",    _gasnet_init,    METH_VARARGS, "Bootstrap GASNet job."},
-    {"exit",    _gasnet_exit,    METH_VARARGS, "Terminate GASNet runtime."},
-    {"attach",  _gasnet_attach,  METH_NOARGS,  "Initialize and setup node."},
-    {"nodes",   _gasnet_nodes,   METH_VARARGS, "Number of nodes in job."},
-    {"mynode",  _gasnet_mynode,  METH_VARARGS, "Index of current node in job."},
-    {"getenv",  _gasnet_getenv,  METH_VARARGS, "Query environment when job was spawned."},
+    {"init",    py_gasnet_init,    METH_VARARGS, "Bootstrap GASNet job."},
+    {"exit",    py_gasnet_exit,    METH_VARARGS, "Terminate GASNet runtime."},
+    {"attach",  py_gasnet_attach,  METH_NOARGS,  "Initialize and setup node."},
+    {"nodes",   py_gasnet_nodes,   METH_VARARGS, "Number of nodes in job."},
+    {"mynode",  py_gasnet_mynode,  METH_VARARGS, "Index of current node in job."},
+    {"getenv",  py_gasnet_getenv,  METH_VARARGS, "Query environment when job was spawned."},
     {NULL,      NULL}           /* sentinel */
 };
 
