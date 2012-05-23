@@ -6,10 +6,13 @@
 static PyObject *
 _gasnet_init(PyObject *self, PyObject *args)
 {
-    int argc = 2;
+    int argc = 5;
     char **argv = (char**) malloc(argc * sizeof(char*));
-    argv[0] = "./pygas";
-    argv[1] = "1";
+    argv[0] = "2";
+    argv[1] = "3";
+    argv[2] = "4";
+    argv[3] = "5";
+    argv[4] = "6";
 
     int status = gasnet_init(&argc, &argv);
     return Py_BuildValue("i", status);
@@ -25,8 +28,13 @@ _gasnet_attach(PyObject *self, PyObject *args)
 static PyObject *
 _gasnet_exit(PyObject *self, PyObject *args)
 {
-    gasnet_exit(0);
-    return Py_None;
+    int ok;
+    int exitcode = 0;
+    ok = PyArg_ParseTuple(args, "|i", &exitcode);
+
+    gasnet_exit(exitcode);
+
+    Py_RETURN_NONE;
 }
 
 static PyObject *
