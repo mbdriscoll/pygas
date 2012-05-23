@@ -1,6 +1,6 @@
 #include "Python.h"
 
-#define GASNET_PAR
+#define GASNET_SEQ
 #include "gasnet.h"
 
 static PyObject *
