@@ -1,2 +1,2 @@
 # Edit this file for local setup changes
-gasnet gasnet.o -lgasnet-mpi-seq -lammpi -lmpich -lpmpich -lmpl
+gasnet gasnet.o -lgasnet-smp-seq
