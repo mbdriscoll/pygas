@@ -19,3 +19,6 @@ opt/
 pyconfig.h
 python.exe
 python.exe-gdb.py
+
+# vim swap files
+*.swp
