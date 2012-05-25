@@ -63,14 +63,56 @@ py_gasnet_getenv(PyObject *self, PyObject *args)
     return Py_BuildValue("s", value);
 }
 
+static PyObject *
+py_gasnet_barrier_wait(PyObject *self, PyObject *args)
+{
+    int ok;
+    int id = 0;
+    int flags = GASNET_BARRIERFLAG_ANONYMOUS;
+    ok = PyArg_ParseTuple(args, "|ii", &id, &flags);
+
+    gasnet_barrier_wait(id, flags);
+
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+py_gasnet_barrier_notify(PyObject *self, PyObject *args)
+{
+    int ok;
+    int id = 0;
+    int flags = GASNET_BARRIERFLAG_ANONYMOUS;
+    ok = PyArg_ParseTuple(args, "|ii", &id, &flags);
+
+    gasnet_barrier_notify(id, flags);
+
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+py_gasnet_barrier_try(PyObject *self, PyObject *args)
+{
+    int ok;
+    int id = 0;
+    int flags = GASNET_BARRIERFLAG_ANONYMOUS;
+    ok = PyArg_ParseTuple(args, "|ii", &id, &flags);
+
+    gasnet_barrier_try(id, flags);
+
+    Py_RETURN_NONE;
+}
+
 static PyMethodDef gasnet_methods[] = {
-    {"init",    py_gasnet_init,    METH_VARARGS, "Bootstrap GASNet job."},
-    {"exit",    py_gasnet_exit,    METH_VARARGS, "Terminate GASNet runtime."},
-    {"attach",  py_gasnet_attach,  METH_NOARGS,  "Initialize and setup node."},
-    {"nodes",   py_gasnet_nodes,   METH_VARARGS, "Number of nodes in job."},
-    {"mynode",  py_gasnet_mynode,  METH_VARARGS, "Index of current node in job."},
-    {"getenv",  py_gasnet_getenv,  METH_VARARGS, "Query environment when job was spawned."},
-    {NULL,      NULL}           /* sentinel */
+    {"init",           py_gasnet_init,           METH_VARARGS, "Bootstrap GASNet job."},
+    {"exit",           py_gasnet_exit,           METH_VARARGS, "Terminate GASNet runtime."},
+    {"attach",         py_gasnet_attach,         METH_NOARGS,  "Initialize and setup node."},
+    {"nodes",          py_gasnet_nodes,          METH_VARARGS, "Number of nodes in job."},
+    {"mynode",         py_gasnet_mynode,         METH_VARARGS, "Index of current node in job."},
+    {"getenv",         py_gasnet_getenv,         METH_VARARGS, "Query environment when job was spawned."},
+    {"barrier_notify", py_gasnet_barrier_notify, METH_VARARGS, "Execute notify to split-phase barrier."},
+    {"barrier_wait",   py_gasnet_barrier_wait,   METH_VARARGS, "Execute notify to split-phase barrier."},
+    {"barrier_try",    py_gasnet_barrier_try,    METH_VARARGS, "Execute notify to split-phase barrier."},
+    {NULL,             NULL}           /* sentinel */
 };
 
 PyMODINIT_FUNC
