@@ -102,7 +102,7 @@ py_gasnet_barrier_try(PyObject *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
-static PyMethodDef gasnet_methods[] = {
+static PyMethodDef py_gasnet_methods[] = {
     {"init",           py_gasnet_init,           METH_VARARGS, "Bootstrap GASNet job."},
     {"exit",           py_gasnet_exit,           METH_VARARGS, "Terminate GASNet runtime."},
     {"attach",         py_gasnet_attach,         METH_NOARGS,  "Initialize and setup node."},
@@ -116,9 +116,9 @@ static PyMethodDef gasnet_methods[] = {
 };
 
 PyMODINIT_FUNC
-initgasnet(void)
+init_gasnet(void)
 {
-    PyObject *module = Py_InitModule3("gasnet", gasnet_methods, "Interface to GASNet.");
+    PyObject *module = Py_InitModule3("_gasnet", py_gasnet_methods, "Interface to GASNet.");
 
     PyModule_AddIntConstant(module, "BARRIERFLAG_ANONYMOUS", GASNET_BARRIERFLAG_ANONYMOUS);
     PyModule_AddIntConstant(module, "BARRIERFLAG_MISMATCH",  GASNET_BARRIERFLAG_MISMATCH);
