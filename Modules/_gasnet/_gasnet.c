@@ -170,10 +170,10 @@ py_gasnet_coll_gather(PyObject *self, PyObject *args)
 static PyObject *
 py_gasnet_coll_gather_all(PyObject *self, PyObject *args)
 {
-    int ok, to_thread = 0;
+    int ok;
     Py_buffer pb_send, pb_recv;
     PyObject *obj, *arr;
-    ok = PyArg_ParseTuple(args, "OO|i", &obj, &arr, &to_thread);
+    ok = PyArg_ParseTuple(args, "OO|i", &obj, &arr);
     ok = PyObject_GetBuffer(obj, &pb_send, PyBUF_SIMPLE);
     ok = PyObject_GetBuffer(arr, &pb_recv, PyBUF_SIMPLE);
 
