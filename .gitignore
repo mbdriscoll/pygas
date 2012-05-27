@@ -1,5 +1,6 @@
 *.o
 *.pyc
+*.pyo
 
 Makefile
 Makefile.pre
