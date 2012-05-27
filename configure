@@ -11953,10 +11953,10 @@ $as_echo "$MPI_PATH" >&6; }
 
 if test $ac_sys_system = Darwin
 then
-    PYGAS_LIBS="-lgasnet-mpi-seq -lammpi -lmpich -lmpl -lpmpich"
+    PYGAS_LIBS="-lgasnet-mpi-par -lammpi -lmpich -lmpl -lpmpich"
 
 else
-    PYGAS_LIBS="-lgasnet-mpi-seq -lammpi -lmpich -lmpl -lrt"
+    PYGAS_LIBS="-lgasnet-mpi-par -lammpi -lmpich -lmpl -lrt"
 
 fi
 

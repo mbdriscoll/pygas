@@ -3452,9 +3452,9 @@ AC_MSG_RESULT([$MPI_PATH])
 
 if test $ac_sys_system = Darwin
 then
-    AC_SUBST(PYGAS_LIBS,"-lgasnet-mpi-seq -lammpi -lmpich -lmpl -lpmpich")
+    AC_SUBST(PYGAS_LIBS,"-lgasnet-mpi-par -lammpi -lmpich -lmpl -lpmpich")
 else
-    AC_SUBST(PYGAS_LIBS,"-lgasnet-mpi-seq -lammpi -lmpich -lmpl -lrt")
+    AC_SUBST(PYGAS_LIBS,"-lgasnet-mpi-par -lammpi -lmpich -lmpl -lrt")
 fi
 
 # **************************************************

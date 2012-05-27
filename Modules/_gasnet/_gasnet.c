@@ -1,6 +1,6 @@
 #include "Python.h"
 
-#define GASNET_SEQ
+#define GASNET_PAR
 #include "gasnet.h"
 
 static PyObject *
@@ -15,6 +15,7 @@ py_gasnet_init(PyObject *self, PyObject *args)
     argv[4] = "6";
 
     int status = gasnet_init(&argc, &argv);
+
     return Py_BuildValue("i", status);
 }
 
@@ -22,6 +23,10 @@ static PyObject *
 py_gasnet_attach(PyObject *self, PyObject *args)
 {
     int status = gasnet_attach(NULL, 0, gasnet_getMaxLocalSegmentSize(), GASNET_PAGESIZE);
+
+    gasnet_coll_fn_entry_t fntable[1];
+    gasnet_coll_init(0, 0, 0, 0, 0);
+
     return Py_BuildValue("i", status);
 }
 
