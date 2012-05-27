@@ -21,9 +21,9 @@ def shared(obj):
   warnings.warn("shared() not implemented")
   return obj
 
-def all_reduce(obj, fxn=operator.add):
-  warnings.warn("all_reduce() not implemented")
-  return fxn(obj,obj)
+def scatter(obj, val, from_thread=0):
+  gasnet.scatter(obj, val, from_thread)
+  return None
 
 def broadcast(obj, from_thread=0):
   gasnet.broadcast(obj, from_thread)
