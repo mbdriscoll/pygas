@@ -36,3 +36,7 @@ def gather(obj, arr, to_thread=0):
 def all_gather(obj, arr):
   gasnet.all_gather(obj, arr)
   return None
+
+def exchange(obj, arr):
+  gasnet.exchange(obj, arr)
+  return None
