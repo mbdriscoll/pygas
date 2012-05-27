@@ -2,6 +2,11 @@
 *.pyc
 *.pyo
 
+*.pickle
+*.rsrc
+
+platform
+
 Makefile
 Makefile.pre
 Misc/python.pc
