@@ -12,7 +12,7 @@
 _gasnet _gasnet/_gasnet.c \
     -I@GASNET_PATH@/include -I@GASNET_PATH@/include/mpi-conduit -I@MPI_PATH@/include \
     -L@GASNET_PATH@/lib -L@MPI_PATH@/lib \
-    -lgasnet-mpi-seq -lammpi -lmpich -lpmpich -lmpl \
+    @PYGAS_LIBS@ \
     -DGASNET_ALLOW_OPTIMIZED_DEBUG
 
 # The rest of the modules previously listed in this file are built

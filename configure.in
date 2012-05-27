@@ -3448,6 +3448,13 @@ AC_ARG_WITH(mpi,
     AC_SUBST(MPI_PATH,[/usr/local/mpich2])
 )
 
+if test $ac_sys_system = Darwin
+then
+    AC_SUBST(PYGAS_LIBS,"-lgasnet-mpi-seq -lammpi -lmpich -lmpl -lpmpich")
+else
+    AC_SUBST(PYGAS_LIBS,"-lgasnet-mpi-seq -lammpi -lmpich -lmpl -lrt")
+fi
+
 # **************************************************
 # * Check for various properties of floating point *
 # **************************************************

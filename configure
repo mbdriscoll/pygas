@@ -627,6 +627,7 @@ ac_subst_vars='LTLIBOBJS
 SRCDIRS
 THREADHEADERS
 UNICODE_OBJS
+PYGAS_LIBS
 MPI_PATH
 GASNET_PATH
 LIBC
@@ -11945,6 +11946,15 @@ else
 
 fi
 
+
+if test $ac_sys_system = Darwin
+then
+    PYGAS_LIBS="-lgasnet-mpi-seq -lammpi -lmpich -lmpl -lpmpich"
+
+else
+    PYGAS_LIBS="-lgasnet-mpi-seq -lammpi -lmpich -lmpl -lrt"
+
+fi
 
 # **************************************************
 # * Check for various properties of floating point *
