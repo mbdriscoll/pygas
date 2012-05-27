@@ -3,6 +3,10 @@
 #define GASNET_PAR
 #include "gasnet.h"
 
+/* make this code a little more UPC-like */
+#define THREADS (gasnet_nodes())
+#define MYTHREAD (gasnet_mynode())
+
 static PyObject *
 py_gasnet_init(PyObject *self, PyObject *args)
 {
@@ -196,7 +200,7 @@ py_gasnet_coll_exchange(PyObject *self, PyObject *args)
     ok = PyObject_GetBuffer(arr, &pb_recv, PyBUF_SIMPLE);
 
     const int flags = GASNET_COLL_IN_MYSYNC|GASNET_COLL_OUT_MYSYNC|GASNET_COLL_LOCAL;
-    gasnet_coll_exchange(GASNET_TEAM_ALL, pb_recv.buf, pb_send.buf, pb_send.len/gasnet_nodes(), flags);
+    gasnet_coll_exchange(GASNET_TEAM_ALL, pb_recv.buf, pb_send.buf, pb_send.len/THREADS, flags);
 
     PyBuffer_Release(&pb_send);
     PyBuffer_Release(&pb_recv);
