@@ -108,13 +108,34 @@ py_gasnet_barrier_try(PyObject *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
+void py_gasnet_coll_apply(void *results, size_t result_count,
+        const void *left_operands, size_t left_count,
+        const void *right_operands,
+        size_t elem_size, int flags, int arg)
+{
+    int i;
+    int *res = (int*) results;
+    int *src1 = (int*) left_operands;
+    int *src2 = (int*) right_operands;
+    for(i=0; i<result_count; i++) {
+        res[i] = src1[i] + src2[i]; //TODO more than add
+    }
+
+    //PyObject *reduce_fxn = (PyObject*) arg;
+    //PyObject_Print(reduce_fxn, stdout, Py_PRINT_RAW);
+}
+
 static PyObject *
 py_gasnet_coll_init(PyObject *self, PyObject *args)
 {
     int ok;
     ok = PyArg_ParseTuple(args, "");
 
-    gasnet_coll_init(0, 0, 0, 0, 0);
+    gasnet_coll_fn_entry_t fntable[1];
+    fntable[0].fnptr=py_gasnet_coll_apply;
+    fntable[0].flags=0;
+
+    gasnet_coll_init(0, 0, fntable, 1, 0);
 
     Py_RETURN_NONE;
 }
@@ -251,6 +272,25 @@ py_gasnet_coll_try_sync(PyObject *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
+static PyObject *
+py_gasnet_coll_reduce(PyObject *self, PyObject *args)
+{
+    int ok;
+    Py_buffer pb_send, pb_recv;
+    PyObject *obj, *arr, *fxn;
+    int to_thread = 0;
+    ok = PyArg_ParseTuple(args, "OOiO!", &obj, &arr, &to_thread, &PyFunction_Type, &fxn);
+    ok = PyObject_GetBuffer(obj, &pb_send, PyBUF_SIMPLE);
+    ok = PyObject_GetBuffer(arr, &pb_recv, PyBUF_SIMPLE);
+
+    const int flags = GASNET_COLL_IN_MYSYNC|GASNET_COLL_OUT_MYSYNC|GASNET_COLL_LOCAL;
+    // passing ptr "fxn" as func_args is bad accd to collective_notes.txt
+    gasnet_coll_reduce(GASNET_TEAM_ALL, to_thread, pb_recv.buf, pb_send.buf, 0, 0, 1, THREADS, 0, fxn, flags);
+    //gasnet_coll_reduce(gasnet_team_handle_t team, gasnet_image_t dstimage, void *dst, void *src, size_t src_blksz, size_t src_offset, size_t elem_size, size_t elem_count, gasnet_coll_fn_handle_t func, int func_arg, int flags GASNETE_THREAD_FARG) ;
+
+    Py_RETURN_NONE;
+}
+
 static PyMethodDef py_gasnet_methods[] = {
     {"init",           py_gasnet_init,           METH_VARARGS, "Bootstrap GASNet job."},
     {"exit",           py_gasnet_exit,           METH_VARARGS, "Terminate GASNet runtime."},
@@ -272,6 +312,7 @@ static PyMethodDef py_gasnet_methods[] = {
     {"exchange",       py_gasnet_coll_exchange,  METH_VARARGS, "Exchange."},
     {"wait_sync",      py_gasnet_coll_wait_sync, METH_VARARGS, "Wait sync on nonblocking collectives handle."},
     {"try_sync",       py_gasnet_coll_try_sync,  METH_VARARGS, "Try sync on nonblocking collectives handle."},
+    {"reduce",         py_gasnet_coll_reduce,    METH_VARARGS, "Reduce."},
 
     {NULL,             NULL}           /* sentinel */
 };

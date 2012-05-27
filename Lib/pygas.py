@@ -50,3 +50,7 @@ def all_gather(obj, arr):
 
 def exchange(obj, arr):
   return gasnet.exchange(obj, arr)
+
+def reduce(obj, arr, to_thread=0):
+  import operator
+  return gasnet.reduce(obj, arr, to_thread, operator.add)
