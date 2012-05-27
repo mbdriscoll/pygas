@@ -21,10 +21,14 @@ def shared(obj):
   warnings.warn("shared() not implemented")
   return obj
 
-def scatter(obj, val, from_thread=0):
-  gasnet.scatter(obj, val, from_thread)
+def scatter(obj, dest, from_thread=0):
+  gasnet.scatter(obj, dest, from_thread)
   return None
 
 def broadcast(obj, from_thread=0):
   gasnet.broadcast(obj, from_thread)
+  return None
+
+def gather(obj, arr, to_thread=0):
+  gasnet.gather(obj, arr, to_thread)
   return None
