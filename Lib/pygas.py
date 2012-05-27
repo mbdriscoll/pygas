@@ -22,21 +22,19 @@ def shared(obj):
   return obj
 
 def scatter(obj, dest, from_thread=0):
-  gasnet.scatter(obj, dest, from_thread)
-  return None
+  return gasnet.scatter(obj, dest, from_thread)
 
-def broadcast(obj, from_thread=0):
-  gasnet.broadcast(obj, from_thread)
-  return None
+def broadcast(obj, from_thread=0, nonblocking=False):
+  return gasnet.broadcast(obj, from_thread, nonblocking)
 
 def gather(obj, arr, to_thread=0):
-  gasnet.gather(obj, arr, to_thread)
-  return None
+  return gasnet.gather(obj, arr, to_thread)
 
 def all_gather(obj, arr):
-  gasnet.all_gather(obj, arr)
-  return None
+  return gasnet.all_gather(obj, arr)
 
 def exchange(obj, arr):
-  gasnet.exchange(obj, arr)
-  return None
+  return gasnet.exchange(obj, arr)
+
+def wait_sync(handle):
+  return gasnet.wait_sync(handle)

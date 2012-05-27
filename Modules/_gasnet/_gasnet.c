@@ -124,15 +124,25 @@ py_gasnet_coll_broadcast(PyObject *self, PyObject *args)
 {
     int ok, from_thread = 0;
     Py_buffer pb;
-    PyObject *obj;
-    ok = PyArg_ParseTuple(args, "O|i", &obj, &from_thread);
+    PyObject *obj, *nb_flag = Py_False;
+    ok = PyArg_ParseTuple(args, "O|iO!", &obj, &from_thread, &PyBool_Type, &nb_flag);
     ok = PyObject_GetBuffer(obj, &pb, PyBUF_SIMPLE);
 
+    PyObject *retval = NULL;
     const int flags = GASNET_COLL_IN_MYSYNC|GASNET_COLL_OUT_MYSYNC|GASNET_COLL_LOCAL;
-    gasnet_coll_broadcast(GASNET_TEAM_ALL, pb.buf, from_thread, pb.buf, pb.len, flags);
+
+    if (nb_flag == Py_True) {
+        gasnet_coll_handle_t *handle = (gasnet_coll_handle_t *) malloc( sizeof(gasnet_coll_handle_t) );;
+        *handle = gasnet_coll_broadcast_nb(GASNET_TEAM_ALL, pb.buf, from_thread, pb.buf, pb.len, flags);
+        retval = PyCapsule_New(handle, NULL, NULL);
+    } else {
+        gasnet_coll_broadcast(GASNET_TEAM_ALL, pb.buf, from_thread, pb.buf, pb.len, flags);
+        retval = Py_None;
+    }
+    assert( retval != NULL );
 
     PyBuffer_Release(&pb);
-    Py_RETURN_NONE;
+    return retval;
 }
 
 static PyObject *
@@ -207,6 +217,20 @@ py_gasnet_coll_exchange(PyObject *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
+static PyObject *
+py_gasnet_coll_wait_sync(PyObject *self, PyObject *args)
+{
+    int ok;
+    PyObject* capsule;
+    ok = PyArg_ParseTuple(args, "O!", &PyCapsule_Type, &capsule);
+
+    gasnet_coll_handle_t *handle = (gasnet_coll_handle_t *) PyCapsule_GetPointer(capsule, NULL);
+    gasnet_coll_wait_sync(*handle);
+
+    free(handle); // TODO good idea to free handles after wait_sync?
+    Py_RETURN_NONE;
+}
+
 static PyMethodDef py_gasnet_methods[] = {
     {"init",           py_gasnet_init,           METH_VARARGS, "Bootstrap GASNet job."},
     {"exit",           py_gasnet_exit,           METH_VARARGS, "Terminate GASNet runtime."},
@@ -225,6 +249,7 @@ static PyMethodDef py_gasnet_methods[] = {
     {"gather",         py_gasnet_coll_gather,    METH_VARARGS, "Gather."},
     {"all_gather",     py_gasnet_coll_gather_all,METH_VARARGS, "Gather all."},
     {"exchange",       py_gasnet_coll_exchange,  METH_VARARGS, "Exchange."},
+    {"wait_sync",      py_gasnet_coll_wait_sync, METH_VARARGS, "Wait sync on nonblocking collectives handle."},
 
     {NULL,             NULL}           /* sentinel */
 };
