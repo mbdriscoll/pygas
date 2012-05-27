@@ -6,6 +6,7 @@ import operator # for add (default reduction operation)
 
 gasnet.init()
 gasnet.attach()
+gasnet.coll_init()
 
 THREADS = gasnet.nodes()
 MYTHREAD = gasnet.mynode()
