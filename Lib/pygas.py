@@ -32,3 +32,7 @@ def broadcast(obj, from_thread=0):
 def gather(obj, arr, to_thread=0):
   gasnet.gather(obj, arr, to_thread)
   return None
+
+def all_gather(obj, arr):
+  gasnet.all_gather(obj, arr)
+  return None
