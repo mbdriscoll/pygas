@@ -627,6 +627,7 @@ ac_subst_vars='LTLIBOBJS
 SRCDIRS
 THREADHEADERS
 UNICODE_OBJS
+MPI_PATH
 GASNET_PATH
 LIBC
 LIBM
@@ -788,6 +789,7 @@ with_fpectl
 with_libm
 with_libc
 with_gasnet
+with_mpi
 enable_big_digits
 enable_unicode
 '
@@ -1462,6 +1464,7 @@ Optional Packages:
   --with-libm=STRING      math library
   --with-libc=STRING      C library
   --with-gasnet=PATH      GASNet installation
+  --with-mpi=PATH         MPICH2 installation
 
 Some influential environment variables:
   CC          C compiler command
@@ -11923,6 +11926,21 @@ if test "${with_gasnet+set}" = set; then :
 
 else
   GASNET_PATH=/usr/local/gasnet
+
+
+fi
+
+
+# check for --with-mpi=...
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for --with-mpi=PATH" >&5
+$as_echo_n "checking for --with-mpi=PATH... " >&6; }
+
+# Check whether --with-mpi was given.
+if test "${with_mpi+set}" = set; then :
+  withval=$with_mpi; MPI_PATH=$withval
+
+else
+  MPI_PATH=/usr/local/mpich2
 
 
 fi

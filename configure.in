@@ -3440,6 +3440,14 @@ AC_ARG_WITH(gasnet,
     AC_SUBST(GASNET_PATH,[/usr/local/gasnet])
 )
 
+# check for --with-mpi=...
+AC_MSG_CHECKING(for --with-mpi=PATH)
+AC_ARG_WITH(mpi,
+    AS_HELP_STRING([--with-mpi=PATH], [MPICH2 installation]),
+    AC_SUBST(MPI_PATH,[$withval]),
+    AC_SUBST(MPI_PATH,[/usr/local/mpich2])
+)
+
 # **************************************************
 # * Check for various properties of floating point *
 # **************************************************
