@@ -118,13 +118,14 @@ py_gasnet_coll_init(PyObject *self, PyObject *args)
 static PyObject *
 py_gasnet_coll_broadcast(PyObject *self, PyObject *args)
 {
-    int ok;
+    int ok, from_thread = 0;
     Py_buffer pb;
     PyObject *obj;
-    ok = PyArg_ParseTuple(args, "O", &obj);
+    ok = PyArg_ParseTuple(args, "O|i", &obj, &from_thread);
     ok = PyObject_GetBuffer(obj, &pb, PyBUF_SIMPLE);
 
-    gasnet_coll_broadcast(GASNET_TEAM_ALL, pb.buf, 0, pb.buf, pb.len, GASNET_COLL_IN_MYSYNC|GASNET_COLL_OUT_MYSYNC|GASNET_COLL_LOCAL);
+    const int flags = GASNET_COLL_IN_MYSYNC|GASNET_COLL_OUT_MYSYNC|GASNET_COLL_LOCAL;
+    gasnet_coll_broadcast(GASNET_TEAM_ALL, pb.buf, from_thread, pb.buf, pb.len, flags);
 
     PyBuffer_Release(&pb);
     Py_RETURN_NONE;
