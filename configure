@@ -11931,6 +11931,8 @@ else
 
 fi
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $GASNET_PATH" >&5
+$as_echo "$GASNET_PATH" >&6; }
 
 # check for --with-mpi=...
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for --with-mpi=PATH" >&5
@@ -11946,6 +11948,8 @@ else
 
 fi
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $MPI_PATH" >&5
+$as_echo "$MPI_PATH" >&6; }
 
 if test $ac_sys_system = Darwin
 then

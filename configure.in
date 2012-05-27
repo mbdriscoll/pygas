@@ -3439,6 +3439,7 @@ AC_ARG_WITH(gasnet,
     AC_SUBST(GASNET_PATH,[$withval]),
     AC_SUBST(GASNET_PATH,[/usr/local/gasnet])
 )
+AC_MSG_RESULT([$GASNET_PATH])
 
 # check for --with-mpi=...
 AC_MSG_CHECKING(for --with-mpi=PATH)
@@ -3447,6 +3448,7 @@ AC_ARG_WITH(mpi,
     AC_SUBST(MPI_PATH,[$withval]),
     AC_SUBST(MPI_PATH,[/usr/local/mpich2])
 )
+AC_MSG_RESULT([$MPI_PATH])
 
 if test $ac_sys_system = Darwin
 then
