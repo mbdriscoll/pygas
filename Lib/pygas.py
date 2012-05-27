@@ -25,6 +25,7 @@ def all_reduce(obj, fxn=operator.add):
   warnings.warn("all_reduce() not implemented")
   return fxn(obj,obj)
 
-def broadcast(obj, from_thread=0):
-  warnings.warn("broadcast() not implemented")
+def broadcast(obj, from_thread=-1):
+  if from_thread != -1: warnings.warn("from_thread in broadcast() not implemented")
+  gasnet.broadcast(obj)
   return None

@@ -107,7 +107,26 @@ py_gasnet_barrier_try(PyObject *self, PyObject *args)
 static PyObject *
 py_gasnet_coll_init(PyObject *self, PyObject *args)
 {
+    int ok;
+    ok = PyArg_ParseTuple(args, "");
+
     gasnet_coll_init(0, 0, 0, 0, 0);
+
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+py_gasnet_coll_broadcast(PyObject *self, PyObject *args)
+{
+    int ok;
+    Py_buffer pb;
+    PyObject *obj;
+    ok = PyArg_ParseTuple(args, "O", &obj);
+    ok = PyObject_GetBuffer(obj, &pb, PyBUF_SIMPLE);
+
+    gasnet_coll_broadcast(GASNET_TEAM_ALL, pb.buf, 0, pb.buf, pb.len, GASNET_COLL_IN_MYSYNC|GASNET_COLL_OUT_MYSYNC|GASNET_COLL_LOCAL);
+
+    PyBuffer_Release(&pb);
     Py_RETURN_NONE;
 }
 
@@ -122,6 +141,7 @@ static PyMethodDef py_gasnet_methods[] = {
     {"barrier_wait",   py_gasnet_barrier_wait,   METH_VARARGS, "Execute wait for split-phase barrier."},
     {"barrier_try",    py_gasnet_barrier_try,    METH_VARARGS, "Execute try for split-phase barrier."},
     {"coll_init",      py_gasnet_coll_init,      METH_VARARGS, "Initialize collectives."},
+    {"broadcast",      py_gasnet_coll_broadcast, METH_VARARGS, "Broadcast."},
     {NULL,             NULL}           /* sentinel */
 };
 
