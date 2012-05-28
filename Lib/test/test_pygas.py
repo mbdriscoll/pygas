@@ -18,7 +18,7 @@ class NamesTestCase(unittest.TestCase):
     def test_C_functions(self):
         from pygas import barrier
         from pygas import broadcast
-        from pygas import all_reduce
+        from pygas import gather
 
 def test_main():
     test_support.run_unittest(NamesTestCase)
