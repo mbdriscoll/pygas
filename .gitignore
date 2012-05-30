@@ -5,26 +5,7 @@
 *.pickle
 *.rsrc
 
-platform
-
-Makefile
-Makefile.pre
-Misc/python.pc
-Setup
-Setup.config
-config.c
-ld_so_aix
-Parser/pgen
-Parser/pgen.stamp
-autom4te.cache/
-build/
-config.log
-config.status
-libpython2.7.a
-opt/
-pyconfig.h
-python.exe
-python.exe-gdb.py
+build
 
 # vim swap files
 *.swp
