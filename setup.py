@@ -37,7 +37,10 @@ setup(
         MPI_PATH+'/lib',
       ],
       libraries=libraries,
-      define_macros=[('GASNET_ALLOW_OPTIMIZED_DEBUG', 1)],
+      define_macros=[
+        ('GASNET_ALLOW_OPTIMIZED_DEBUG', 1),
+        ('GASNETT_USE_GCC_ATTRIBUTE_MAYALIAS', 1),
+      ],
     ),
   ]
 )
