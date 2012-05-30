@@ -13,7 +13,7 @@ setup(
   packages=['pygas'],
   package_dir={'pygas': 'src/pygas'},
   ext_modules=[
-    Extension('_gasnet',
+    Extension('pygas._gasnet',
       ['src/_gasnet/_gasnet.c'],
       include_dirs=[
         GASNET_PATH+'/include',
