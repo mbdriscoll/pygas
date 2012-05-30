@@ -1,7 +1,19 @@
+import sys
 from distutils.core import setup, Extension
 
-GASNET_PATH='/Users/mbdriscoll/opt/gasnet-1.18.2'
-MPI_PATH='/Users/mbdriscoll/opt/mpich2-1.4.1'
+# TODO figure out the equivalent of ./configure ...
+if sys.platform.startswith('linux'):
+  GASNET_PATH='/home/ubuntu/opt/gasnet-1.18.2'
+  MPI_PATH='/home/ubuntu/opt/mpich2-1.4.1'
+elif sys.platform.startswith('darwin'):
+  GASNET_PATH='/Users/mbdriscoll/opt/gasnet-1.18.2'
+  MPI_PATH='/Users/mbdriscoll/opt/mpich2-1.4.1'
+
+libraries = ['gasnet-mpi-par', 'ammpi', 'mpich', 'mpl']
+if sys.platform.startswith('linux'):
+  libraries += ['rt']
+elif sys.platform.startswith('darwin'):
+  libraries += ['pmpich']
 
 setup(
   name='PyGAS',
@@ -24,7 +36,7 @@ setup(
         GASNET_PATH+'/lib',
         MPI_PATH+'/lib',
       ],
-      libraries=['gasnet-mpi-par', 'ammpi', 'mpich', 'mpl', 'pmpich'],
+      libraries=libraries,
       define_macros=[('GASNET_ALLOW_OPTIMIZED_DEBUG', 1)],
     ),
   ]
