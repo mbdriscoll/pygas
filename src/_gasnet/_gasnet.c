@@ -1,4 +1,5 @@
 #include "Python.h"
+#include "capsulethunk.h" // for backwards compatability with CObjects
 
 #define GASNET_PAR
 #include "gasnet.h"
