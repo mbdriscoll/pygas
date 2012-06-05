@@ -323,9 +323,9 @@ static PyMethodDef py_gasnet_methods[] = {
 };
 
 PyMODINIT_FUNC
-init_gasnet(void)
+initgasnet(void)
 {
-    PyObject *module = Py_InitModule3("_gasnet", py_gasnet_methods, "Interface to GASNet.");
+    PyObject *module = Py_InitModule3("gasnet", py_gasnet_methods, "Interface to GASNet.");
 
     PyModule_AddIntConstant(module, "BARRIERFLAG_ANONYMOUS", GASNET_BARRIERFLAG_ANONYMOUS);
     PyModule_AddIntConstant(module, "BARRIERFLAG_MISMATCH",  GASNET_BARRIERFLAG_MISMATCH);

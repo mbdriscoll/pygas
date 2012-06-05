@@ -1,4 +1,4 @@
-import pygas._gasnet as gasnet
+import pygas.gasnet as gasnet
 
 import atexit   # for registering gasnet_exit at termination
 import warnings # for warn

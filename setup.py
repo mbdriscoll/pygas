@@ -23,10 +23,9 @@ setup(
   author_email='mbdriscoll@cs.berkeley.edu',
   url='http://github.com/mbdriscoll/pygas',
   packages=['pygas'],
-  package_dir={'pygas': 'src/pygas'},
   ext_modules=[
-    Extension('pygas._gasnet',
-      ['src/_gasnet/_gasnet.c'],
+    Extension('pygas.gasnet',
+      ['pygas/gasnet/gasnet.c'],
       include_dirs=[
         GASNET_PATH+'/include',
         GASNET_PATH+'/include/mpi-conduit',
