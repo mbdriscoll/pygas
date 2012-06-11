@@ -1,6 +1,7 @@
 *.o
 *.pyc
 *.pyo
+*.so
 
 *.pickle
 *.rsrc
