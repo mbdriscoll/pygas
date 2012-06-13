@@ -22,7 +22,7 @@ setup(
   author='Michael Driscoll',
   author_email='mbdriscoll@cs.berkeley.edu',
   url='http://github.com/mbdriscoll/pygas',
-  packages=['pygas', 'pygas.test'],
+  packages=['pygas', 'pygas.robj', 'pygas.test'],
   ext_modules=[
     Extension('pygas.gasnet',
       ['pygas/gasnet/gasnet.c'],

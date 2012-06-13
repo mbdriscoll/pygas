@@ -296,6 +296,17 @@ py_gasnet_coll_reduce(PyObject *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
+static PyObject *
+py_gasnet_apply_dynamic(PyObject *self, PyObject *args)
+{
+    int ok;
+    char *data;
+    int to_thread = 0, data_len = 0;
+    ok = PyArg_ParseTuple(args, "is#", &to_thread, &data, &data_len);
+
+    Py_RETURN_NONE;
+}
+
 static PyMethodDef py_gasnet_methods[] = {
     {"init",           py_gasnet_init,           METH_VARARGS, "Bootstrap GASNet job."},
     {"exit",           py_gasnet_exit,           METH_VARARGS, "Terminate GASNet runtime."},
@@ -319,7 +330,11 @@ static PyMethodDef py_gasnet_methods[] = {
     {"try_sync",       py_gasnet_coll_try_sync,  METH_VARARGS, "Try sync on nonblocking collectives handle."},
     {"reduce",         py_gasnet_coll_reduce,    METH_VARARGS, "Reduce."},
 
-    {NULL,             NULL}           /* sentinel */
+    // My functions.
+    {"apply_dynamic",  py_gasnet_apply_dynamic,  METH_VARARGS, "Apply a dynamic function"},
+
+    // Sentinel
+    {NULL,             NULL}
 };
 
 PyMODINIT_FUNC
