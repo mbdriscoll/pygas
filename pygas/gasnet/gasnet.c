@@ -47,19 +47,50 @@ py_gasnet_apply_dynamic(PyObject *self, PyObject *args)
     return result;
 }
 
+typedef struct msg_info {
+    size_t nbytes;
+    char* data;
+    gasnet_token_t token;
+    void* addr0;
+    void* addr1;
+} msg_info_t;
+  
+int
+pygas_async_handler(char* msg) {
+    msg_info_t* msg_info = (msg_info_t*) &msg[0];
+
+    PyObject* tuple = PyMarshal_ReadObjectFromString(msg_info->data, msg_info->nbytes);
+  
+    int ok;
+    PyObject *func, *args, *kwargs;
+    ok = PyArg_ParseTuple(tuple, "O!O!O!", PyFunction_Type, &func, PyTuple_Type, &args, PyDict_Type, &kwargs);
+
+    PyObject *result = PyObject_Call(func, args, kwargs); 
+    PyObject *marshalled = PyMarshal_WriteObjectToString(result, 2);
+     
+    int nbytes;
+    char *data;
+    ok = PyString_AsStringAndSize(marshalled, &data, &nbytes);
+    gasnet_AMReplyMedium2(msg_info->token, APPLY_DYNAMIC_REPLY_HIDX, data, nbytes, msg_info->addr0, msg_info->addr1);
+    
+    free(msg);
+    return 0;
+}
+
 void
-pygas_apply_dynamic_request_handler(gasnet_token_t token, void* data, size_t nbytes, void *addr0, void *addr1)
+pygas_apply_dynamic_request_handler(gasnet_token_t token, char* data, size_t nbytes, void *addr0, void *addr1)
 {
-    //PyEval_AcquireLock();
-    PyObject *pygas_module = PyImport_ImportModule("pygas");
-    PyObject *handler_fxn = PyObject_GetAttrString(pygas_module, "apply_dynamic_handler");
-    PyObject *result = PyObject_CallFunction(handler_fxn, "(s#)", data, nbytes);
-    
-    PyString_AsStringAndSize(result, &data, &nbytes);
-    gasnet_AMReplyMedium2(token, APPLY_DYNAMIC_REPLY_HIDX, data, nbytes, addr0, addr1);
-    
-    // todo lots of decref-ing
-    //PyEval_ReleaseLock();
+    char* msg = (char*) malloc(nbytes + sizeof(msg_info_t));
+    msg_info_t* msg_info = (msg_info_t*) &msg[0];
+
+    msg_info->nbytes = nbytes;
+    msg_info->data = &msg[sizeof(msg_info_t)];
+    msg_info->token = token;
+    msg_info->addr0 = addr0;
+    msg_info->addr1 = addr1;
+
+    memcpy(msg_info->data, data, nbytes);
+    Py_AddPendingCall(pygas_async_handler, msg);
 }
 
 void
