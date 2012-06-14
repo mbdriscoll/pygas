@@ -12,16 +12,19 @@
 #define THREADS (gasnet_nodes())
 #define MYTHREAD (gasnet_mynode())
 
+#define APPLY_DYNAMIC_REQUEST_HIDX 144
+#define APPLY_DYNAMIC_REPLY_HIDX   145
+// adding new hidx? be sure to update gasnet_handerentry_t count
+
 static PyObject *
 py_gasnet_init(PyObject *self, PyObject *args)
 {
-    int argc = 5;
+    PyEval_InitThreads();
+
+    int argc = 2;
     char **argv = (char**) malloc(argc * sizeof(char*));
     argv[0] = "2";
     argv[1] = "3";
-    argv[2] = "4";
-    argv[3] = "5";
-    argv[4] = "6";
 
     int status = gasnet_init(&argc, &argv);
 
@@ -29,9 +32,55 @@ py_gasnet_init(PyObject *self, PyObject *args)
 }
 
 static PyObject *
+py_gasnet_apply_dynamic(PyObject *self, PyObject *args)
+{
+    char *data;
+    int dest = 0, nbytes = 0;
+    PyArg_ParseTuple(args, "is#", &dest, &data, &nbytes);
+
+    PyObject * result = NULL;
+    uint32_t addr_lo = &result;
+    uint32_t addr_hi = ((uint64_t) &result) >> 32;
+    gasnet_AMRequestMedium2(dest, APPLY_DYNAMIC_REQUEST_HIDX, data, nbytes, addr_lo, addr_hi);
+    GASNET_BLOCKUNTIL(result != NULL);
+
+    return result;
+}
+
+void
+pygas_apply_dynamic_request_handler(gasnet_token_t token, void* data, size_t nbytes, void *addr0, void *addr1)
+{
+    //PyEval_AcquireLock();
+    PyObject *pygas_module = PyImport_ImportModule("pygas");
+    PyObject *handler_fxn = PyObject_GetAttrString(pygas_module, "apply_dynamic_handler");
+    PyObject *result = PyObject_CallFunction(handler_fxn, "(s#)", data, nbytes);
+    
+    PyString_AsStringAndSize(result, &data, &nbytes);
+    gasnet_AMReplyMedium2(token, APPLY_DYNAMIC_REPLY_HIDX, data, nbytes, addr0, addr1);
+    
+    // todo lots of decref-ing
+    //PyEval_ReleaseLock();
+}
+
+void
+pygas_apply_dynamic_reply_handler(gasnet_token_t token, void* data, size_t nbytes, uint32_t addr_lo, uint32_t addr_hi)
+{
+    //PyEval_AcquireLock();
+    uint64_t addr = ((uint64_t) addr_lo) | (((uint64_t) addr_hi) << 32);
+    *((PyObject**) addr) = Py_BuildValue("s#", data, nbytes);
+    //PyEval_ReleaseLock();
+}
+
+
+gasnet_handlerentry_t handler_table[] = {
+    {APPLY_DYNAMIC_REQUEST_HIDX,   pygas_apply_dynamic_request_handler},
+    {APPLY_DYNAMIC_REPLY_HIDX,     pygas_apply_dynamic_reply_handler}
+};
+
+static PyObject *
 py_gasnet_attach(PyObject *self, PyObject *args)
 {
-    int status = gasnet_attach(NULL, 0, gasnet_getMaxLocalSegmentSize(), GASNET_PAGESIZE);
+    int status = gasnet_attach(&handler_table, 2, gasnet_getMaxLocalSegmentSize(), GASNET_PAGESIZE);
 
     return Py_BuildValue("i", status);
 }
@@ -296,16 +345,6 @@ py_gasnet_coll_reduce(PyObject *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
-static PyObject *
-py_gasnet_apply_dynamic(PyObject *self, PyObject *args)
-{
-    int ok;
-    char *data;
-    int to_thread = 0, data_len = 0;
-    ok = PyArg_ParseTuple(args, "is#", &to_thread, &data, &data_len);
-
-    Py_RETURN_NONE;
-}
 
 static PyMethodDef py_gasnet_methods[] = {
     {"init",           py_gasnet_init,           METH_VARARGS, "Bootstrap GASNet job."},

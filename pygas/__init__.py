@@ -8,6 +8,9 @@ import atexit   # for registering gasnet_exit at termination
 import warnings # for warn
 import operator # for add (default reduction operation)
 
+from pickle import loads as deserialize
+from pickle import dumps as serialize
+
 gasnet.init()
 gasnet.attach()
 gasnet.coll_init()
@@ -94,3 +97,21 @@ def reduce(obj, arr, to_thread=0):
     """
     # pylint: disable=W0622
     return gasnet.reduce(obj, arr, to_thread, operator.add)
+
+def rcall(dest, fxn, *args, **kwargs):
+    """
+    Remote call. Execute fxn(args, kwargs) on DEST.
+    """
+    from pygas.gasnet import apply_dynamic
+    objs = (fxn, args, kwargs)
+    data = serialize(objs) 
+    result = apply_dynamic(dest, data)
+    return deserialize(result)
+     
+def apply_dynamic_handler(data):
+    """
+    Doc string.
+    """
+    fxn, args, kwargs = deserialize(data)
+    result = fxn(*args, **kwargs)
+    return serialize(result)
