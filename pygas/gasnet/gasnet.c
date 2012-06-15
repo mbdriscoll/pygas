@@ -16,6 +16,21 @@
 #define APPLY_DYNAMIC_REPLY_HIDX   145
 // adding new hidx? be sure to update gasnet_handerentry_t count
 
+// TODO check implications of this with gasnet team
+#define PYGASNET_BLOCKUNTIL(cond) \
+    while (!(cond)) {             \
+        gasnet_AMPoll();          \
+	Py_MakePendingCalls();    \
+    }                    
+
+typedef struct msg_info {
+    size_t nbytes;
+    char* data;
+    gasnet_node_t sender;
+    void* addr0;
+    void* addr1;
+} msg_info_t;
+  
 static PyObject *
 py_gasnet_init(PyObject *self, PyObject *args)
 {
@@ -38,40 +53,60 @@ py_gasnet_apply_dynamic(PyObject *self, PyObject *args)
     int dest = 0, nbytes = 0;
     PyArg_ParseTuple(args, "is#", &dest, &data, &nbytes);
 
-    PyObject * result = NULL;
-    uint32_t addr_lo = &result;
-    uint32_t addr_hi = ((uint64_t) &result) >> 32;
+    char *msg = NULL;
+    uint32_t addr_lo = ((uint64_t) &msg) >> 0;
+    uint32_t addr_hi = ((uint64_t) &msg) >> 32;
     gasnet_AMRequestMedium2(dest, APPLY_DYNAMIC_REQUEST_HIDX, data, nbytes, addr_lo, addr_hi);
-    GASNET_BLOCKUNTIL(result != NULL);
+    //printf("thread %d blockuntil 0x%lx\n", gasnet_mynode(), &msg);
+    PYGASNET_BLOCKUNTIL(msg != NULL);
 
+    msg_info_t* msg_info = (msg_info_t*) &msg[0];
+    PyObject * result = Py_BuildValue("s#", msg_info->data, msg_info->nbytes);
+
+    free(msg);
     return result;
 }
 
-typedef struct msg_info {
-    size_t nbytes;
-    char* data;
-    gasnet_token_t token;
-    void* addr0;
-    void* addr1;
-} msg_info_t;
-  
+static PyObject *apply_dynamic_handler = NULL;
+
+static PyObject *
+set_apply_dynamic_handler(PyObject *dummy, PyObject *args)
+{
+    PyObject *result = NULL;
+    PyObject *temp;
+
+    if (PyArg_ParseTuple(args, "O:set_callback", &temp)) {
+        if (!PyCallable_Check(temp)) {
+            PyErr_SetString(PyExc_TypeError, "parameter must be callable");
+            return NULL;
+        }
+        Py_XINCREF(temp);         /* Add a reference to new callback */
+        Py_XDECREF(apply_dynamic_handler);  /* Dispose of previous callback */
+        apply_dynamic_handler = temp;       /* Remember new callback */
+        /* Boilerplate to return "None" */
+        Py_INCREF(Py_None);
+        result = Py_None;
+    }
+    return result;
+}
+
 int
-pygas_async_handler(char* msg) {
+pygas_async_request_handler(char* msg) {
     msg_info_t* msg_info = (msg_info_t*) &msg[0];
 
-    PyObject* tuple = PyMarshal_ReadObjectFromString(msg_info->data, msg_info->nbytes);
-  
-    int ok;
-    PyObject *func, *args, *kwargs;
-    ok = PyArg_ParseTuple(tuple, "O!O!O!", PyFunction_Type, &func, PyTuple_Type, &args, PyDict_Type, &kwargs);
+    if (!PyCallable_Check(apply_dynamic_handler))
+       PyObject_Print(apply_dynamic_handler, stdout, 0);
+    assert(PyCallable_Check(apply_dynamic_handler));
+    PyObject *result = PyObject_CallFunction(apply_dynamic_handler, "(s#)", msg_info->data, msg_info->nbytes);
+    if (!PyString_Check(result))
+        printf("Didn't get a string from CallFunction in async_handler\n");
 
-    PyObject *result = PyObject_Call(func, args, kwargs); 
-    PyObject *marshalled = PyMarshal_WriteObjectToString(result, 2);
-     
+    //printf("Thread %d sending reply to thread %d.\n", gasnet_mynode(), msg_info->sender);
+
     int nbytes;
     char *data;
-    ok = PyString_AsStringAndSize(marshalled, &data, &nbytes);
-    gasnet_AMReplyMedium2(msg_info->token, APPLY_DYNAMIC_REPLY_HIDX, data, nbytes, msg_info->addr0, msg_info->addr1);
+    PyString_AsStringAndSize(result, &data, &nbytes);
+    gasnet_AMRequestMedium2(msg_info->sender, APPLY_DYNAMIC_REPLY_HIDX, data, nbytes, msg_info->addr0, msg_info->addr1);
     
     free(msg);
     return 0;
@@ -83,25 +118,37 @@ pygas_apply_dynamic_request_handler(gasnet_token_t token, char* data, size_t nby
     char* msg = (char*) malloc(nbytes + sizeof(msg_info_t));
     msg_info_t* msg_info = (msg_info_t*) &msg[0];
 
+    gasnet_node_t sender;
+    gasnet_AMGetMsgSource(token, &sender);
+
+    //printf("Thread %d handling req from thread %d\n", gasnet_mynode(), sender);
+
+    msg_info->sender = sender;
     msg_info->nbytes = nbytes;
     msg_info->data = &msg[sizeof(msg_info_t)];
-    msg_info->token = token;
     msg_info->addr0 = addr0;
     msg_info->addr1 = addr1;
-
     memcpy(msg_info->data, data, nbytes);
-    Py_AddPendingCall(pygas_async_handler, msg);
+
+    Py_AddPendingCall(pygas_async_request_handler, msg);
 }
 
 void
-pygas_apply_dynamic_reply_handler(gasnet_token_t token, void* data, size_t nbytes, uint32_t addr_lo, uint32_t addr_hi)
+pygas_apply_dynamic_reply_handler(gasnet_token_t token, void* data, size_t nbytes, uint32_t addr0, uint32_t addr1)
 {
-    //PyEval_AcquireLock();
-    uint64_t addr = ((uint64_t) addr_lo) | (((uint64_t) addr_hi) << 32);
-    *((PyObject**) addr) = Py_BuildValue("s#", data, nbytes);
-    //PyEval_ReleaseLock();
-}
+    uint64_t addr = ((uint64_t) addr0) | (((uint64_t) addr1) << 32);
 
+    char* msg = (char*) malloc(nbytes + sizeof(msg_info_t));
+    msg_info_t* msg_info = (msg_info_t*) &msg[0];
+
+    msg_info->nbytes = nbytes;
+    msg_info->data = &msg[sizeof(msg_info_t)];
+    memcpy(msg_info->data, data, nbytes);
+
+    // write val to end PYGASNET_BLOCKUNTIL
+    //printf("thread %d writing to 0x%lx with %d(=%d) bytes\n", gasnet_mynode(), addr, nbytes, msg_info->nbytes);
+    *((char**) addr) = msg;
+}
 
 gasnet_handlerentry_t handler_table[] = {
     {APPLY_DYNAMIC_REQUEST_HIDX,   pygas_apply_dynamic_request_handler},
@@ -112,6 +159,8 @@ static PyObject *
 py_gasnet_attach(PyObject *self, PyObject *args)
 {
     int status = gasnet_attach(&handler_table, 2, gasnet_getMaxLocalSegmentSize(), GASNET_PAGESIZE);
+
+    gasnet_set_waitmode(GASNET_WAIT_BLOCK);
 
     return Py_BuildValue("i", status);
 }
@@ -402,6 +451,7 @@ static PyMethodDef py_gasnet_methods[] = {
 
     // My functions.
     {"apply_dynamic",  py_gasnet_apply_dynamic,  METH_VARARGS, "Apply a dynamic function"},
+    {"set_apply_dynamic_handler",  set_apply_dynamic_handler,  METH_VARARGS, "Set the request hanlder that applies a dynamic function"},
 
     // Sentinel
     {NULL,             NULL}
@@ -414,4 +464,5 @@ initgasnet(void)
 
     PyModule_AddIntConstant(module, "BARRIERFLAG_ANONYMOUS", GASNET_BARRIERFLAG_ANONYMOUS);
     PyModule_AddIntConstant(module, "BARRIERFLAG_MISMATCH",  GASNET_BARRIERFLAG_MISMATCH);
+
 }

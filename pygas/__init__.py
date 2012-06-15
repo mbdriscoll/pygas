@@ -107,3 +107,12 @@ def rcall(dest, fxn, *args, **kwargs):
     data = serialize(objs) 
     result = apply_dynamic(dest, data)
     return deserialize(result)
+
+def apply_dynamic_handler(data):
+    """
+    Doc string.
+    """
+    fxn, args, kwargs = deserialize(data)
+    result = fxn(*args, **kwargs)
+    return serialize(result)
+gasnet.set_apply_dynamic_handler(apply_dynamic_handler)

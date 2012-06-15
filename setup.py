@@ -39,6 +39,7 @@ setup(
       define_macros=[
         ('GASNET_ALLOW_OPTIMIZED_DEBUG', 1),
         ('GASNETT_USE_GCC_ATTRIBUTE_MAYALIAS', 1),
+        ('DEBUG', 1),
       ],
     ),
   ]
