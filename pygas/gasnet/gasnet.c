@@ -23,6 +23,16 @@
 	Py_MakePendingCalls();    \
     }                    
 
+/* Reimplementation of gasnet_barrier_wait that allows pending
+ * Python calls created by incoming AMs to be serviced by the
+ * interpreter while waiting.
+ * XXX: spins. check with gasnet team for advice here.
+ * TODO: support for other gasnet_barrier_try return codes. */
+#define PYGASNET_BARRIER_WAIT(id, flags) \
+    while (gasnet_barrier_try((id), (flags)) != GASNET_OK) { \
+        Py_MakePendingCalls(); \
+    }
+
 typedef struct msg_info {
     size_t nbytes;
     char* data;
@@ -174,7 +184,6 @@ py_gasnet_exit(PyObject *self, PyObject *args)
 
     /* execute barrier to be compliant with spec */
     gasnet_barrier_notify(0, GASNET_BARRIERFLAG_ANONYMOUS);
-    gasnet_barrier_wait(0, GASNET_BARRIERFLAG_ANONYMOUS);
 
     gasnet_exit(exitcode);
 
@@ -215,16 +224,7 @@ py_gasnet_barrier_wait(PyObject *self, PyObject *args)
     int flags = GASNET_BARRIERFLAG_ANONYMOUS;
     ok = PyArg_ParseTuple(args, "|ii", &id, &flags);
 
-#if 0 /* cant block because we have the GIL and might need to 
-       * service pending calls. */
-    gasnet_barrier_wait(id, flags);
-#else /* Spin and service pending interpreter calls.
-       * TODO ask gasnet team for advice here.
-       * TODO support for other gasnet*() return codes  */
-    while (gasnet_barrier_try(id, flags) != GASNET_OK) {
-        Py_MakePendingCalls();
-    }
-#endif
+    PYGASNET_BARRIER_WAIT(id, flags);
 
     Py_RETURN_NONE;
 }
