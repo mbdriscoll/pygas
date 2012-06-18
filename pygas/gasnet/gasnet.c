@@ -184,6 +184,7 @@ py_gasnet_exit(PyObject *self, PyObject *args)
 
     /* execute barrier to be compliant with spec */
     gasnet_barrier_notify(0, GASNET_BARRIERFLAG_ANONYMOUS);
+    PYGASNET_BARRIER_WAIT(0, GASNET_BARRIERFLAG_ANONYMOUS);
 
     gasnet_exit(exitcode);
 
