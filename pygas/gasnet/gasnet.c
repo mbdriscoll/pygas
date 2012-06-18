@@ -215,7 +215,16 @@ py_gasnet_barrier_wait(PyObject *self, PyObject *args)
     int flags = GASNET_BARRIERFLAG_ANONYMOUS;
     ok = PyArg_ParseTuple(args, "|ii", &id, &flags);
 
+#if 0 /* cant block because we have the GIL and might need to 
+       * service pending calls. */
     gasnet_barrier_wait(id, flags);
+#else /* Spin and service pending interpreter calls.
+       * TODO ask gasnet team for advice here.
+       * TODO support for other gasnet*() return codes  */
+    while (gasnet_barrier_try(id, flags) != GASNET_OK) {
+        Py_MakePendingCalls();
+    }
+#endif
 
     Py_RETURN_NONE;
 }
