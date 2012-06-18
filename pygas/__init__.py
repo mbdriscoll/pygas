@@ -63,15 +63,20 @@ def scatter(obj, dest, from_thread=0):
     """
     return gasnet.scatter(obj, dest, from_thread)
 
-def broadcast(obj, from_thread=0, nonblocking=False):
+def broadcast(obj, from_thread=0):
     """
     Doc string.
     """
-    if nonblocking:
-        gasnet_handle = gasnet.broadcast_nb(obj, from_thread)
-        return Handle(gasnet_handle)
+    if MYTHREAD == from_thread:
+        data = serialize(obj)
     else:
-        return gasnet.broadcast(obj, from_thread)
+        data = bytearray(gasnet.AMMaxMedium())
+
+    gasnet.broadcast(data, from_thread)
+
+    if MYTHREAD != from_thread:
+        obj = deserialize(data)
+    return obj
 
 def gather(obj, arr, to_thread=0):
     """
@@ -116,3 +121,20 @@ def apply_dynamic_handler(data):
     result = fxn(*args, **kwargs)
     return serialize(result)
 gasnet.set_apply_dynamic_handler(apply_dynamic_handler)
+
+def make_proxy(obj):
+    """
+    Doc string.
+    """
+    return obj
+
+def share(obj, from_thread=0):
+    """
+    Doc string.
+    """
+    if MYTHREAD == from_thread:
+    	broadcast(make_proxy(obj), from_thread=from_thread)
+        return obj
+    else:
+    	proxy_obj = broadcast(None, from_thread=from_thread)
+        return proxy_obj
