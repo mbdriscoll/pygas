@@ -172,6 +172,10 @@ py_gasnet_exit(PyObject *self, PyObject *args)
     int exitcode = 0;
     ok = PyArg_ParseTuple(args, "|i", &exitcode);
 
+    /* execute barrier to be compliant with spec */
+    gasnet_barrier_notify(0, GASNET_BARRIERFLAG_ANONYMOUS);
+    gasnet_barrier_wait(0, GASNET_BARRIERFLAG_ANONYMOUS);
+
     gasnet_exit(exitcode);
 
     Py_RETURN_NONE;
