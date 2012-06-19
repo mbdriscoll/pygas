@@ -73,7 +73,6 @@ py_gasnet_apply_dynamic(PyObject *self, PyObject *args)
     msg_info_t* msg_info = (msg_info_t*) &msg[0];
     PyObject * result = Py_BuildValue("s#", msg_info->data, msg_info->nbytes);
 
-    free(msg);
     return result;
 }
 
@@ -104,21 +103,31 @@ int
 pygas_async_request_handler(char* msg) {
     msg_info_t* msg_info = (msg_info_t*) &msg[0];
 
-    if (!PyCallable_Check(apply_dynamic_handler))
+    assert(apply_dynamic_handler != NULL);
+    PyErr_Print();
+    if (!PyCallable_Check(apply_dynamic_handler)) {
        PyObject_Print(apply_dynamic_handler, stdout, 0);
+       printf("thread %d didn't get a callable apply_dynamic_handler\n", gasnet_mynode());
+    }
+    PyErr_Print();
     assert(PyCallable_Check(apply_dynamic_handler));
+    PyErr_Print();
+    //printf("async req handler on thread %d (nbytes=%d, src=%d)\n", gasnet_mynode(), msg_info->nbytes, msg_info->sender);
     PyObject *result = PyObject_CallFunction(apply_dynamic_handler, "(s#)", msg_info->data, msg_info->nbytes);
-    if (!PyString_Check(result))
+    PyErr_Print();
+    //printf("async req handler on thread %d (nbytes=%d) err_print\n", gasnet_mynode(), msg_info->nbytes);
+    //printf("async req handler on thread %d (nbytes=%d) done\n", gasnet_mynode(), msg_info->nbytes);
+    if (!PyString_Check(result)) {
         printf("Didn't get a string from CallFunction in async_handler\n");
-
-    //printf("Thread %d sending reply to thread %d.\n", gasnet_mynode(), msg_info->sender);
+    }
+    //printf("async req handler on thread %d (nbytes=%d) checked\n", gasnet_mynode(), msg_info->nbytes);
 
     int nbytes;
     char *data;
     PyString_AsStringAndSize(result, &data, &nbytes);
+    //printf("Thread %d sending reply to thread %d.\n", gasnet_mynode(), msg_info->sender);
     gasnet_AMRequestMedium2(msg_info->sender, APPLY_DYNAMIC_REPLY_HIDX, data, nbytes, msg_info->addr0, msg_info->addr1);
     
-    free(msg);
     return 0;
 }
 
@@ -297,7 +306,6 @@ py_gasnet_coll_broadcast(PyObject *self, PyObject *args)
     assert( PyArg_ParseTuple(args, "O|i:from_thread", &obj, &from_thread) );
     assert( !PyObject_GetBuffer(obj, &pb, PyBUF_SIMPLE) );
 
-    printf("thread %d recving %d bytes\n", gasnet_mynode(), pb.len);
     const int flags = GASNET_COLL_IN_MYSYNC|GASNET_COLL_OUT_MYSYNC|GASNET_COLL_LOCAL;
     gasnet_coll_broadcast(GASNET_TEAM_ALL, pb.buf, from_thread, pb.buf, pb.len, flags);
 
@@ -456,16 +464,23 @@ py_obj_to_capi(PyObject *self, PyObject *args)
     int ok;
     PyObject *obj;
     assert(PyArg_ParseTuple(args, "O", &obj));
-    return PyCapsule_New(obj, NULL, NULL);
+
+    /* increment reference count. TODO distributed reference counting */
+    Py_XINCREF(obj);
+
+    return PyLong_FromVoidPtr(obj);
 }
 
 static PyObject *
 py_capi_to_obj(PyObject *self, PyObject *args)
 {
-    int ok;
-    PyObject *capi;
-    assert(PyArg_ParseTuple(args, "O!", PyCapsule_Type, &capi));
-    return (PyObject*) PyCapsule_GetPointer(capi,NULL);
+    long ptr;
+    PyObject* obj;
+    assert(PyArg_ParseTuple(args, "l", &ptr));
+
+    obj = (PyObject*) ptr;
+    Py_XINCREF(obj);
+    return obj;
 }
     
 static PyMethodDef py_gasnet_methods[] = {
