@@ -50,13 +50,6 @@ def barrier(bid=0, flags=gasnet.BARRIERFLAG_ANONYMOUS):
     gasnet.barrier_notify(bid, flags)
     gasnet.barrier_wait(bid, flags)
 
-def shared(obj):
-    """
-    Doc string.
-    """
-    warnings.warn("shared() not implemented")
-    return obj
-
 def scatter(obj, dest, from_thread=0):
     """
     Doc string.
@@ -70,7 +63,7 @@ def broadcast(obj, from_thread=0):
     if MYTHREAD == from_thread:
         data = serialize(obj)
     else:
-        data = bytearray(gasnet.AMMaxMedium())
+        data = str('_'*128) # FIXME: nbytes must be same across all callers
 
     gasnet.broadcast(data, from_thread)
 
@@ -103,13 +96,12 @@ def reduce(obj, arr, to_thread=0):
     # pylint: disable=W0622
     return gasnet.reduce(obj, arr, to_thread, operator.add)
 
-def rcall(dest, fxn, *args, **kwargs):
+def rcall(dest, obj, name, *args, **kwargs):
     """
     Remote call. Execute fxn(args, kwargs) on DEST.
     """
     from pygas.gasnet import apply_dynamic
-    objs = (fxn, args, kwargs)
-    data = serialize(objs) 
+    data = serialize((obj, name, args, kwargs))
     result = apply_dynamic(dest, data)
     return deserialize(result)
 
@@ -117,23 +109,39 @@ def apply_dynamic_handler(data):
     """
     Doc string.
     """
-    fxn, args, kwargs = deserialize(data)
+    obj_capi, name, args, kwargs = deserialize(data)
+    
     result = fxn(*args, **kwargs)
     return serialize(result)
 gasnet.set_apply_dynamic_handler(apply_dynamic_handler)
 
-def make_proxy(obj):
-    """
-    Doc string.
-    """
-    return obj
+class RemoteMethod(object):
+    def __init__(self, name):
+        self.name = name
+
+    def __call__(self, *args, **kwargs):
+        print "rcall('%s', ...)" % self.name
+
+class Proxy(object):
+    def __init__(self, obj, owner=MYTHREAD):
+        self.obj_capi= gasnet.obj_to_capi(obj)
+        self.owner = owner
+
+    def __getstate__(self):
+        return (self.obj_capi, self.owner)
+
+    def __setstate__(self, state):
+        self.obj_capi, self.owner = state
+
+    def __getattr__(self, name):
+        return RemoteMethod(name)
 
 def share(obj, from_thread=0):
     """
     Doc string.
     """
     if MYTHREAD == from_thread:
-    	broadcast(make_proxy(obj), from_thread=from_thread)
+    	broadcast(Proxy(obj), from_thread=from_thread)
         return obj
     else:
     	proxy_obj = broadcast(None, from_thread=from_thread)
