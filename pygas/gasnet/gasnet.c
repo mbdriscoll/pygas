@@ -124,7 +124,6 @@ pygas_apply_dynamic_request_handler(gasnet_token_t token, char* data, size_t nby
 {
     char* msg = (char*) malloc(nbytes);
     memcpy(msg, data, nbytes);
-    
     Py_AddPendingCall(pygas_async_request_handler, msg);
 }
 
@@ -148,8 +147,6 @@ static PyObject *
 py_gasnet_attach(PyObject *self, PyObject *args)
 {
     int status = gasnet_attach(&handler_table, 2, gasnet_getMaxLocalSegmentSize(), GASNET_PAGESIZE);
-
-    gasnet_set_waitmode(GASNET_WAIT_BLOCK);
 
     return Py_BuildValue("i", status);
 }
