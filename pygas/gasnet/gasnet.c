@@ -29,11 +29,9 @@
     }
 
 typedef struct msg_info {
-    size_t nbytes;
-    char* data;
     gasnet_node_t sender;
-    void* addr0;
-    void* addr1;
+    size_t nbytes;
+    void* addr;
 } msg_info_t;
   
 static PyObject *
@@ -57,14 +55,19 @@ py_gasnet_apply_dynamic(PyObject *self, PyObject *args)
     int dest = 0, nbytes = 0;
     PyArg_ParseTuple(args, "is#", &dest, &data, &nbytes);
 
-    char *msg = NULL;
-    uint32_t addr_lo = ((uint64_t) &msg) >> 0;
-    uint32_t addr_hi = ((uint64_t) &msg) >> 32;
-    gasnet_AMRequestMedium2(dest, APPLY_DYNAMIC_REQUEST_HIDX, data, nbytes, addr_lo, addr_hi);
-    PYGASNET_BLOCKUNTIL(msg != NULL);
+    char *reply = NULL;
+    char request[sizeof(msg_info_t)+nbytes];
+    msg_info_t* request_info = (msg_info_t*) &request[0];
+    request_info->sender = MYTHREAD;
+    request_info->nbytes = nbytes;
+    request_info->addr = (void*) &reply;
+    memcpy(&request[sizeof(msg_info_t)], data, nbytes);
 
-    msg_info_t* msg_info = (msg_info_t*) &msg[0];
-    PyObject * result = Py_BuildValue("s#", msg_info->data, msg_info->nbytes);
+    gasnet_AMRequestMedium0(dest, APPLY_DYNAMIC_REQUEST_HIDX, &request, sizeof(request));
+    PYGASNET_BLOCKUNTIL(reply != NULL);
+
+    msg_info_t* reply_info = (msg_info_t*) &reply[0];
+    PyObject * result = Py_BuildValue("s#", &reply[sizeof(msg_info_t)], reply_info->nbytes);
 
     return result;
 }
@@ -93,57 +96,46 @@ set_apply_dynamic_handler(PyObject *dummy, PyObject *args)
 }
 
 int
-pygas_async_request_handler(char* msg) {
-    msg_info_t* msg_info = (msg_info_t*) &msg[0];
+pygas_async_request_handler(char* request) {
+    msg_info_t* request_info = (msg_info_t*) &request[0];
 
-    if (!PyCallable_Check(apply_dynamic_handler))
-       printf("thread %d didn't get a callable apply_dynamic_handler\n", gasnet_mynode());
-
-    PyObject *result = PyObject_CallFunction(apply_dynamic_handler, "(s#)", msg_info->data, msg_info->nbytes);
-    if (!PyString_Check(result))
-        printf("Didn't get a string from CallFunction in async_handler\n");
+    PyObject *result = PyObject_CallFunction(apply_dynamic_handler, "(s#)", &request[sizeof(msg_info_t)], request_info->nbytes);
+    assert(PyString_Check(result));
 
     int nbytes;
     char *data;
     PyString_AsStringAndSize(result, &data, &nbytes);
-    gasnet_AMRequestMedium2(msg_info->sender, APPLY_DYNAMIC_REPLY_HIDX, data, nbytes, msg_info->addr0, msg_info->addr1);
+    char reply[sizeof(msg_info_t)+nbytes];
+    msg_info_t *reply_info = (msg_info_t*) &reply[0];
+    reply_info->sender = MYTHREAD;
+    reply_info->nbytes = nbytes;
+    reply_info->addr = request_info->addr;
+    memcpy(&reply[sizeof(msg_info_t)], data, nbytes);
     
+    gasnet_AMRequestMedium0(request_info->sender, APPLY_DYNAMIC_REPLY_HIDX, &reply, sizeof(reply));
+    
+    free(request);
     return 0;
 }
 
 void
-pygas_apply_dynamic_request_handler(gasnet_token_t token, char* data, size_t nbytes, void *addr0, void *addr1)
+pygas_apply_dynamic_request_handler(gasnet_token_t token, char* data, size_t nbytes)
 {
-    char* msg = (char*) malloc(nbytes + sizeof(msg_info_t));
-    msg_info_t* msg_info = (msg_info_t*) &msg[0];
-
-    gasnet_node_t sender;
-    gasnet_AMGetMsgSource(token, &sender);
-
-    msg_info->sender = sender;
-    msg_info->nbytes = nbytes;
-    msg_info->data = &msg[sizeof(msg_info_t)];
-    msg_info->addr0 = addr0;
-    msg_info->addr1 = addr1;
-    memcpy(msg_info->data, data, nbytes);
-
+    char* msg = (char*) malloc(nbytes);
+    memcpy(msg, data, nbytes);
+    
     Py_AddPendingCall(pygas_async_request_handler, msg);
 }
 
 void
-pygas_apply_dynamic_reply_handler(gasnet_token_t token, void* data, size_t nbytes, uint32_t addr0, uint32_t addr1)
+pygas_apply_dynamic_reply_handler(gasnet_token_t token, void* data, size_t nbytes)
 {
-    uint64_t addr = ((uint64_t) addr0) | (((uint64_t) addr1) << 32);
-
-    char* msg = (char*) malloc(nbytes + sizeof(msg_info_t));
-    msg_info_t* msg_info = (msg_info_t*) &msg[0];
-
-    msg_info->nbytes = nbytes;
-    msg_info->data = &msg[sizeof(msg_info_t)];
-    memcpy(msg_info->data, data, nbytes);
+    char* reply = (char*) malloc(nbytes);
+    memcpy(reply, data, nbytes);
 
     // write val to end PYGASNET_BLOCKUNTIL
-    *((char**) addr) = msg;
+    msg_info_t* reply_info = (msg_info_t*) &reply[0];
+    *((char**) reply_info->addr) = reply;
 }
 
 gasnet_handlerentry_t handler_table[] = {
