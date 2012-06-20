@@ -41,13 +41,12 @@ py_gasnet_init(PyObject *self, PyObject *args)
 {
     PyEval_InitThreads();
 
-    int argc = 2;
+    int argc = 0;
     char **argv = (char**) malloc(argc * sizeof(char*));
-    argv[0] = "2";
-    argv[1] = "3";
 
     int status = gasnet_init(&argc, &argv);
 
+    free(argv);
     return Py_BuildValue("i", status);
 }
 
