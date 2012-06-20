@@ -9,16 +9,16 @@ GASNET_PATH    = '/ebs/opt/gasnet-1.18.2'
 GASNET_CONDUIT = 'mpi'
 MPI_PATH       = '/usr/lib/mpich2'
 
-# Only allow supported conduits. Supporting more conduits is a matter of
-# updating this script to configure them properly.
-if GASNET_CONDUIT != 'mpi':
-    raise DistutilsSetupError("Unsupported conduit: %s", GASNET_CONDUIT)
-
 # Sanity check gasnet installation.
 gasnet_h_path = path.join(GASNET_PATH, "include", "gasnet.h")
 if not path.exists(gasnet_h_path):
     raise DistutilsSetupError("Cannot locate %s." % gasnet_h_path)
 del gasnet_h_path
+
+# Only allow supported conduits. Supporting more conduits is a matter of
+# updating this script to configure them properly.
+if GASNET_CONDUIT != 'mpi':
+    raise DistutilsSetupError("Unsupported conduit: %s", GASNET_CONDUIT)
 
 # Sanity check gasnet-conduit installation.
 gasnet_core_h_path = path.join(GASNET_PATH, "include", "%s-conduit" % GASNET_CONDUIT, "gasnet_core.h")
