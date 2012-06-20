@@ -110,11 +110,9 @@ def share(obj, from_thread=0):
     Doc string.
     """
     if MYTHREAD == from_thread:
-    	broadcast(Proxy(obj), from_thread=from_thread)
-        return obj
+    	return broadcast(Proxy(obj), from_thread=from_thread)
     else:
-    	proxy_obj = broadcast(None, from_thread=from_thread)
-        return proxy_obj
+    	return broadcast(None, from_thread=from_thread)
 
 def barrier(bid=0, flags=gasnet.BARRIERFLAG_ANONYMOUS):
     """

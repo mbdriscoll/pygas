@@ -10,3 +10,6 @@ build
 
 # vim swap files
 *.swp
+
+*.out
+*.err
