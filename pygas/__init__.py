@@ -26,7 +26,8 @@ write standalone handlers for each eventually.
 """
 GETATTR = 0
 SETATTR = 1
-CALL = 2
+CALL    = 2
+RESOLVE = 3
 
 def apply_dynamic_handler(data):
     """
@@ -36,11 +37,15 @@ def apply_dynamic_handler(data):
     obj = gasnet.capi_to_obj(obj_capi) if obj_capi else __builtins__
     if op is GETATTR:
         result = Proxy(getattr(obj,name))
-    if op is SETATTR:
+    elif op is SETATTR:
         result = setattr(obj, name, args[0])
         print "RESULT", result
-    if op is CALL:
+    elif op is CALL:
         result = Proxy(getattr(obj,name)(*args,**kwargs))
+    elif op is RESOLVE:
+        result = obj
+    else:
+        raise NotImplementedError("Cannot apply op: %s" % op)
     return serialize(result)
 
 gasnet.set_apply_dynamic_handler(apply_dynamic_handler)
@@ -87,8 +92,12 @@ class Proxy(object):
     def __resolve__(self):
         """
         Return a copy of a object?
+        Replace with proxy and move object to caller?
         """
-        pass
+        from pygas.gasnet import apply_dynamic
+        data = serialize((RESOLVE, self.obj_capi, None, None, None))
+        result = apply_dynamic(self.owner, data)
+        return deserialize(result)
 
 """
 Set SIZEOFPROXY to indicate how much space should be reserved for
