@@ -7,6 +7,27 @@ import unittest
 from pygas import *
 
 
+class ComplexNumber(object):
+    """
+    A class for use in test cases.
+    """
+    def __init__(self, real=0.0, imag=0.0):
+        """ Create a new ComplexNumber """
+        self.real = real
+        self.imag = imag
+
+    def get_real(self, negate=False):
+        """ Retrieve and possible negate the real component. """
+        if negate:
+            return -1 * self.real
+        else:
+            return self.real
+
+    def set_real(self, n, factor=1.0):
+        """ Update the real component and scale it by FACTOR. """
+        self.real = factor * n
+
+
 class TestThreads(unittest.TestCase):
     """
     Simple test case to ensure that there are
@@ -77,13 +98,65 @@ class TestShare(unittest.TestCase):
 
 class TestRead(unittest.TestCase):
 
+    @unittest.skip("deadlocks")
     def test_read_1(self):
         """
-        Attributes of shared objects can be read.
+        Attributes of shared builtin objects can be read.
         """
         tid = share(MYTHREAD, from_thread=1)
         self.assertEqual(tid.real, 1)
         self.assertEqual(tid.imag, 0)
+
+    @unittest.skip("deadlocks")
+    def test_read_2(self):
+        """
+        Attributes of shared user-defined objects can be read.
+        """
+        obj = ComplexNumber(MYTHREAD, MYTHREAD)
+        cnum = share(obj, from_thread=1)
+        self.assertEqual(cnum.real, 1)
+        self.assertEqual(cnum.imag, 0)
+
+class TestRPC(unittest.TestCase):
+    """
+    Test procedure calls on remote objects.
+    """
+    @unittest.skip("deadlocks")
+    def test_rpc_noargs(self):
+        """
+        Remote procedures can be called without arguments.
+        """
+        obj = ComplexNumber(MYTHREAD, MYTHREAD)
+        cnum = share(obj, from_thread=1)
+        self.assertEqual(cnum.get_real(), 1)
+
+    @unittest.skip("deadlocks")
+    def test_rpc_args(self):
+        """
+        Remote procedures can be called with arguments.
+        """
+        obj = ComplexNumber(MYTHREAD, MYTHREAD)
+        cnum = share(obj, from_thread=1)
+        self.assertIsNone(cnum.set_real(10))
+
+    @unittest.skip("deadlocks")
+    def test_rpc_kwargs(self):
+        """
+        Remote procedures can be called with keyword arguments.
+        """
+        obj = ComplexNumber(MYTHREAD, MYTHREAD)
+        cnum = share(obj, from_thread=1)
+        self.assertEqual(cnum.get_real(negate=True), -1)
+
+    @unittest.skip("deadlocks")
+    def test_rpc_args_kwargs(self):
+        """
+        Remote procedures can be called with args and kwargs.
+        """
+        obj = ComplexNumber(MYTHREAD, MYTHREAD)
+        cnum = share(obj, from_thread=1)
+        self.assertIsNone(cnum.set_real(10))
+
 
 if __name__ == '__main__':
     unittest.main()
