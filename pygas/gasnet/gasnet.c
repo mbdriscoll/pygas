@@ -1,10 +1,5 @@
 #include "Python.h"
 
-/* be backwards compatible with CObjects */
-#if PY_MAJOR_VERSION <= 2 && PY_MINOR_VERSION < 7
-    #include "capsulethunk.h"
-#endif
-
 #define GASNET_PAR
 #include "gasnet.h"
 
