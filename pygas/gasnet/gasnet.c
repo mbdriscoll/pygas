@@ -443,7 +443,7 @@ py_gasnet_AMMaxMedium(PyObject *self, PyObject *args)
 }
 
 static PyObject *
-py_obj_to_capi(PyObject *self, PyObject *args)
+py_obj_to_capsule(PyObject *self, PyObject *args)
 {
     int ok;
     PyObject *obj;
@@ -456,7 +456,7 @@ py_obj_to_capi(PyObject *self, PyObject *args)
 }
 
 static PyObject *
-py_capi_to_obj(PyObject *self, PyObject *args)
+py_capsule_to_obj(PyObject *self, PyObject *args)
 {
     long ptr;
     PyObject* obj;
@@ -494,8 +494,8 @@ static PyMethodDef py_gasnet_methods[] = {
     // My functions.
     {"apply_dynamic",  py_gasnet_apply_dynamic,  METH_VARARGS, "Apply a dynamic function"},
     {"set_apply_dynamic_handler",  set_apply_dynamic_handler,  METH_VARARGS, "Set the request hanlder that applies a dynamic function"},
-    {"obj_to_capi",    py_obj_to_capi,  METH_VARARGS, "Encapsulate the given object."},
-    {"capi_to_obj",    py_capi_to_obj,  METH_VARARGS, "Decapsulate the given capsule."},
+    {"obj_to_capsule",    py_obj_to_capsule,  METH_VARARGS, "Encapsulate the given object."},
+    {"capsule_to_obj",    py_capsule_to_obj,  METH_VARARGS, "Decapsulate the given capsule."},
 
     // Sentinel
     {NULL,             NULL}

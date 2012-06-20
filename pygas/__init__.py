@@ -2,14 +2,12 @@
 Doc string.
 """
 
-import pygas.gasnet as gasnet
-
 import atexit   # for registering gasnet_exit at termination
-import warnings # for warn
-import operator # for add (default reduction operation)
 
-from pickle import loads as deserialize
-from pickle import dumps as serialize
+from cPickle import loads as deserialize
+from cPickle import dumps as serialize
+
+import pygas.gasnet as gasnet
 
 gasnet.init()
 gasnet.attach()
@@ -33,8 +31,8 @@ def apply_dynamic_handler(data):
     """
     Doc string.
     """
-    op, obj_capi, name, args, kwargs = deserialize(data)
-    obj = gasnet.capi_to_obj(obj_capi) if obj_capi else __builtins__
+    op, capsule, name, args, kwargs = deserialize(data)
+    obj = gasnet.capsule_to_obj(capsule) if capsule else __builtins__
     if op is GETATTR:
         result = Proxy(getattr(obj,name))
     elif op is SETATTR:
@@ -52,21 +50,21 @@ gasnet.set_apply_dynamic_handler(apply_dynamic_handler)
 class Proxy(object):
 
     def __init__(self, obj, owner=MYTHREAD):
-        self.obj_capi = gasnet.obj_to_capi(obj)
+        self.capsule = gasnet.obj_to_capsule(obj)
         self.owner = owner
 
     def __getstate__(self):
-        return (self.obj_capi, self.owner)
+        return (self.capsule, self.owner)
 
     def __setstate__(self, state):
-        self.obj_capi, self.owner = state
+        self.capsule, self.owner = state
 
     def __getattr__(self, name):
         """
         Get a proxy to a remote attribute.
         """
         from pygas.gasnet import apply_dynamic
-        data = serialize((GETATTR, self.obj_capi, name, [], {}))
+        data = serialize((GETATTR, self.capsule, name, [], {}))
         result = apply_dynamic(self.owner, data)
         return deserialize(result)
 
@@ -84,7 +82,7 @@ class Proxy(object):
 
     def __call__(self, *args, **kwargs):
         from pygas.gasnet import apply_dynamic
-        data = serialize((CALL, self.obj_capi, '__call__', args, kwargs))
+        data = serialize((CALL, self.capsule, '__call__', args, kwargs))
         result = apply_dynamic(self.owner, data)
         return deserialize(result)
 
@@ -94,7 +92,7 @@ class Proxy(object):
         Replace with proxy and move object to caller?
         """
         from pygas.gasnet import apply_dynamic
-        data = serialize((RESOLVE, self.obj_capi, None, None, None))
+        data = serialize((RESOLVE, self.capsule, None, None, None))
         result = apply_dynamic(self.owner, data)
         return deserialize(result)
 
@@ -105,7 +103,7 @@ incoming, serialized pygas.Proxy objects.
 foo = object()
 foo_proxy = Proxy(foo)
 foo_data = serialize(foo_proxy)
-SIZEOFPROXY=len(foo_data)
+SIZEOFPROXY = len(foo_data)
 
 def share(obj, from_thread=0):
     """
