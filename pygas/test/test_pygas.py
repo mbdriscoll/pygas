@@ -130,6 +130,21 @@ class TestRead(PygasTestCase):
         self.assertEqual(cnum.real, 1)
         self.assertEqual(cnum.imag, 10)
 
+
+class TestRead(PygasTestCase):
+    """
+    Test writes of remote attributes.
+    """
+    def test_write(self):
+        """
+        Attributes of shared user-defined objects can be written.
+        """
+        obj = ComplexNumber(100, 200)
+        cnum = share(obj, from_thread=1)
+        cnum.real = 300
+        self.assertEqual(cnum.real, 300)
+
+
 class TestRPC(PygasTestCase):
     """
     Test procedure calls on remote objects.
