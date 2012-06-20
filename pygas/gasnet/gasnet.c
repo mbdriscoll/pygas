@@ -61,7 +61,6 @@ py_gasnet_apply_dynamic(PyObject *self, PyObject *args)
     uint32_t addr_lo = ((uint64_t) &msg) >> 0;
     uint32_t addr_hi = ((uint64_t) &msg) >> 32;
     gasnet_AMRequestMedium2(dest, APPLY_DYNAMIC_REQUEST_HIDX, data, nbytes, addr_lo, addr_hi);
-    //printf("thread %d blockuntil 0x%lx\n", gasnet_mynode(), &msg);
     PYGASNET_BLOCKUNTIL(msg != NULL);
 
     msg_info_t* msg_info = (msg_info_t*) &msg[0];
