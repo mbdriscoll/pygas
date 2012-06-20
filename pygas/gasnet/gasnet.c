@@ -28,6 +28,9 @@
         Py_MakePendingCalls(); \
     }
 
+/* This is the header for messages sent through GASNet AMs. 'nbytes'
+ * should be set to the number of bytes in the message payload, which
+ * is found after the header, i.e. at  &msg[sizeof(msg_info_t)]. */
 typedef struct msg_info {
     gasnet_node_t sender;
     size_t nbytes;
