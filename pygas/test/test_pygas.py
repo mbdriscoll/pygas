@@ -145,9 +145,9 @@ class TestRead(PygasTestCase):
         self.assertEqual(cnum.real, 300)
 
 
-class TestRPC(PygasTestCase):
+class TestRPCUserDefined(PygasTestCase):
     """
-    Test procedure calls on remote objects.
+    Test procedure calls on user-defined remote objects.
     """
     @unittest.skip("deadlocks")
     def test_rpc_noargs(self):
