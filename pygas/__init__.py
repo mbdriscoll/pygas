@@ -20,33 +20,35 @@ MYTHREAD = gasnet.mynode()
 
 atexit.register(gasnet.exit)
 
+"""
+Use enums to do dynamic dispatch inside handler. We may want to
+write standalone handlers for each eventually.
+"""
+GETATTR = 0
+SETATTR = 1
+CALL = 2
+
 def apply_dynamic_handler(data):
     """
     Doc string.
     """
-    obj_capi, name, args, kwargs = deserialize(data)
-    obj = gasnet.capi_to_obj(obj_capi) 
-    result = getattr(obj,name)(*args, **kwargs)
+    op, obj_capi, name, args, kwargs = deserialize(data)
+    obj = gasnet.capi_to_obj(obj_capi) if obj_capi else __builtins__
+    if op is GETATTR:
+        result = Proxy(getattr(obj,name))
+    if op is SETATTR:
+        result = setattr(obj, name, args[0])
+        print "RESULT", result
+    if op is CALL:
+        result = Proxy(getattr(obj,name)(*args,**kwargs))
     return serialize(result)
 
 gasnet.set_apply_dynamic_handler(apply_dynamic_handler)
 
-
-class RemoteMethod(object):
-    def __init__(self, proxy, name):
-        self.proxy = proxy
-        self.name = name
-
-    def __call__(self, *args, **kwargs):
-	from pygas.gasnet import apply_dynamic
-	data = serialize((self.proxy.obj_capi, self.name, args, kwargs))
-        #print "call(%s, %s, %s, %s)" % (self.proxy.obj_capi, self.name, args, kwargs)
-	result = apply_dynamic(self.proxy.owner, data)
-	return deserialize(result)
-
 class Proxy(object):
+
     def __init__(self, obj, owner=MYTHREAD):
-        self.obj_capi= gasnet.obj_to_capi(obj)
+        self.obj_capi = gasnet.obj_to_capi(obj)
         self.owner = owner
 
     def __getstate__(self):
@@ -56,7 +58,37 @@ class Proxy(object):
         self.obj_capi, self.owner = state
 
     def __getattr__(self, name):
-        return RemoteMethod(self, name)
+        """
+        Get a proxy to a remote attribute.
+        """
+        from pygas.gasnet import apply_dynamic
+        data = serialize((GETATTR, self.obj_capi, name, [], {}))
+        result = apply_dynamic(self.owner, data)
+        return deserialize(result)
+
+#    def __setattr__(self, name, value):
+#        """
+#        Set a remote attribute to a proxy. If the value is private,
+#        create a proxy to it. If the value is already a proxy, copy
+#        it.
+#        """
+#        if isinstance(value, Proxy):
+#            data = serialize((name, value))
+#        else:
+#            data = serialize((name, Proxy(value)))
+#        set_proxy(self.owner, data)
+
+    def __call__(self, *args, **kwargs):
+        from pygas.gasnet import apply_dynamic
+        data = serialize((CALL, self.obj_capi, '__call__', args, kwargs))
+        result = apply_dynamic(self.owner, data)
+        return deserialize(result)
+
+    def __resolve__(self):
+        """
+        Return a copy of a object?
+        """
+        pass
 
 """
 Set SIZEOFPROXY to indicate how much space should be reserved for
