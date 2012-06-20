@@ -103,29 +103,16 @@ int
 pygas_async_request_handler(char* msg) {
     msg_info_t* msg_info = (msg_info_t*) &msg[0];
 
-    assert(apply_dynamic_handler != NULL);
-    PyErr_Print();
-    if (!PyCallable_Check(apply_dynamic_handler)) {
-       PyObject_Print(apply_dynamic_handler, stdout, 0);
+    if (!PyCallable_Check(apply_dynamic_handler))
        printf("thread %d didn't get a callable apply_dynamic_handler\n", gasnet_mynode());
-    }
-    PyErr_Print();
-    assert(PyCallable_Check(apply_dynamic_handler));
-    PyErr_Print();
-    //printf("async req handler on thread %d (nbytes=%d, src=%d)\n", gasnet_mynode(), msg_info->nbytes, msg_info->sender);
+
     PyObject *result = PyObject_CallFunction(apply_dynamic_handler, "(s#)", msg_info->data, msg_info->nbytes);
-    PyErr_Print();
-    //printf("async req handler on thread %d (nbytes=%d) err_print\n", gasnet_mynode(), msg_info->nbytes);
-    //printf("async req handler on thread %d (nbytes=%d) done\n", gasnet_mynode(), msg_info->nbytes);
-    if (!PyString_Check(result)) {
+    if (!PyString_Check(result))
         printf("Didn't get a string from CallFunction in async_handler\n");
-    }
-    //printf("async req handler on thread %d (nbytes=%d) checked\n", gasnet_mynode(), msg_info->nbytes);
 
     int nbytes;
     char *data;
     PyString_AsStringAndSize(result, &data, &nbytes);
-    //printf("Thread %d sending reply to thread %d.\n", gasnet_mynode(), msg_info->sender);
     gasnet_AMRequestMedium2(msg_info->sender, APPLY_DYNAMIC_REPLY_HIDX, data, nbytes, msg_info->addr0, msg_info->addr1);
     
     return 0;
@@ -139,8 +126,6 @@ pygas_apply_dynamic_request_handler(gasnet_token_t token, char* data, size_t nby
 
     gasnet_node_t sender;
     gasnet_AMGetMsgSource(token, &sender);
-
-    //printf("Thread %d handling req from thread %d\n", gasnet_mynode(), sender);
 
     msg_info->sender = sender;
     msg_info->nbytes = nbytes;
@@ -165,7 +150,6 @@ pygas_apply_dynamic_reply_handler(gasnet_token_t token, void* data, size_t nbyte
     memcpy(msg_info->data, data, nbytes);
 
     // write val to end PYGASNET_BLOCKUNTIL
-    //printf("thread %d writing to 0x%lx with %d(=%d) bytes\n", gasnet_mynode(), addr, nbytes, msg_info->nbytes);
     *((char**) addr) = msg;
 }
 
@@ -493,7 +477,7 @@ static PyMethodDef py_gasnet_methods[] = {
     {"barrier_notify", py_gasnet_barrier_notify, METH_VARARGS, "Execute notify for split-phase barrier."},
     {"barrier_wait",   py_gasnet_barrier_wait,   METH_VARARGS, "Execute wait for split-phase barrier."},
     {"barrier_try",    py_gasnet_barrier_try,    METH_VARARGS, "Execute try for split-phase barrier."},
-    {"AMMaxMedium",    py_gasnet_AMMaxMedium,   METH_VARARGS, "Max size in bytes for AM Medium message."},
+    {"AMMaxMedium",    py_gasnet_AMMaxMedium,    METH_VARARGS, "Max size in bytes for AM Medium message."},
 
     // Collectives. TODO refactor into separate file
     {"coll_init",      py_gasnet_coll_init,      METH_VARARGS, "Initialize collectives."},
