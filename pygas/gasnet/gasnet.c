@@ -40,8 +40,6 @@ typedef struct msg_info {
 static PyObject *
 pygas_gasnet_init(PyObject *self, PyObject *args)
 {
-    PyEval_InitThreads();
-
     int argc = 0;
     char **argv = (char**) malloc(argc * sizeof(char*));
 
