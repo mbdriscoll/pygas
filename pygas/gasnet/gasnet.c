@@ -69,6 +69,7 @@ py_gasnet_apply_dynamic(PyObject *self, PyObject *args)
     msg_info_t* reply_info = (msg_info_t*) &reply[0];
     PyObject * result = Py_BuildValue("s#", &reply[sizeof(msg_info_t)], reply_info->nbytes);
 
+    free(reply);
     return result;
 }
 
