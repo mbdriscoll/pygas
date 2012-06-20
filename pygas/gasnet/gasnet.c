@@ -16,7 +16,7 @@
     while (!(cond)) {             \
         gasnet_AMPoll();          \
 	Py_MakePendingCalls();    \
-    }                    
+    }
 
 /* Reimplementation of gasnet_barrier_wait that allows pending
  * Python calls created by incoming AMs to be serviced by the
@@ -36,7 +36,7 @@ typedef struct msg_info {
     size_t nbytes;
     void *addr;
 } msg_info_t;
-  
+
 static PyObject *
 pygas_gasnet_init(PyObject *self, PyObject *args)
 {
@@ -113,9 +113,9 @@ pygas_async_request_handler(void* request) {
     reply_info->nbytes = nbytes;
     reply_info->addr = request_info->addr;
     memcpy(&reply[sizeof(msg_info_t)], data, nbytes);
-    
+
     gasnet_AMRequestMedium0(request_info->sender, APPLY_DYNAMIC_REPLY_HIDX, &reply, sizeof(reply));
-    
+
     free(request);
     return 0;
 }
@@ -284,7 +284,7 @@ pygas_capsule_to_obj(PyObject *self, PyObject *args)
     Py_XINCREF(obj);
     return obj;
 }
-    
+
 static PyMethodDef pygas_gasnet_methods[] = {
     {"init",           pygas_gasnet_init,           METH_VARARGS, "Bootstrap GASNet job."},
     {"exit",           pygas_gasnet_exit,           METH_VARARGS, "Terminate GASNet runtime."},
