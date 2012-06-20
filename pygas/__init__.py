@@ -39,7 +39,6 @@ def apply_dynamic_handler(data):
         result = Proxy(getattr(obj,name))
     elif op is SETATTR:
         result = setattr(obj, name, args[0])
-        print "RESULT", result
     elif op is CALL:
         result = Proxy(getattr(obj,name)(*args,**kwargs))
     elif op is RESOLVE:
@@ -119,41 +118,12 @@ def share(obj, from_thread=0):
     	proxy_obj = broadcast(None, from_thread=from_thread)
         return proxy_obj
 
-class Handle(object):
-    """
-    Doc string.
-    """
-    def __init__(self, capsule):
-        """
-        Doc string.
-        """
-        self.__gasnet_handle__ = capsule
-
-    def wait_sync(self):
-        """
-        Doc string.
-        """
-        return gasnet.wait_sync(self.__gasnet_handle__)
-
-    def try_sync(self):
-        """
-        Doc string.
-        """
-        return gasnet.try_sync(self.__gasnet_handle__)
-
-
 def barrier(bid=0, flags=gasnet.BARRIERFLAG_ANONYMOUS):
     """
     Doc string.
     """
     gasnet.barrier_notify(bid, flags)
     gasnet.barrier_wait(bid, flags)
-
-def scatter(obj, dest, from_thread=0):
-    """
-    Doc string.
-    """
-    return gasnet.scatter(obj, dest, from_thread)
 
 def broadcast(obj, from_thread=0):
     """
@@ -169,28 +139,3 @@ def broadcast(obj, from_thread=0):
     if MYTHREAD != from_thread:
         obj = deserialize(data)
     return obj
-
-def gather(obj, arr, to_thread=0):
-    """
-    Doc string.
-    """
-    return gasnet.gather(obj, arr, to_thread)
-
-def all_gather(obj, arr):
-    """
-    Doc string.
-    """
-    return gasnet.all_gather(obj, arr)
-
-def exchange(obj, arr):
-    """
-    Doc string.
-    """
-    return gasnet.exchange(obj, arr)
-
-def reduce(obj, arr, to_thread=0):
-    """
-    Doc string.
-    """
-    # pylint: disable=W0622
-    return gasnet.reduce(obj, arr, to_thread, operator.add)
