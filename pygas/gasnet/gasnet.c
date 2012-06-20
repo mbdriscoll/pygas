@@ -98,13 +98,13 @@ set_apply_dynamic_handler(PyObject *dummy, PyObject *args)
 }
 
 int
-pygas_async_request_handler(char* request) {
-    msg_info_t* request_info = (msg_info_t*) &request[0];
+pygas_async_request_handler(void* request) {
+    msg_info_t* request_info = (msg_info_t*) request;
 
-    PyObject *result = PyObject_CallFunction(apply_dynamic_handler, "(s#)", &request[sizeof(msg_info_t)], request_info->nbytes);
+    PyObject *result = PyObject_CallFunction(apply_dynamic_handler, "(s#)", (char*) request+sizeof(msg_info_t), request_info->nbytes);
     assert(PyString_Check(result));
 
-    int nbytes;
+    Py_ssize_t nbytes;
     char *data;
     PyString_AsStringAndSize(result, &data, &nbytes);
     char reply[sizeof(msg_info_t)+nbytes];
@@ -147,7 +147,7 @@ gasnet_handlerentry_t handler_table[] = {
 static PyObject *
 pygas_gasnet_attach(PyObject *self, PyObject *args)
 {
-    int status = gasnet_attach(&handler_table, 2, gasnet_getMaxLocalSegmentSize(), GASNET_PAGESIZE);
+    int status = gasnet_attach(handler_table, 2, gasnet_getMaxLocalSegmentSize(), GASNET_PAGESIZE);
 
     return Py_BuildValue("i", status);
 }
