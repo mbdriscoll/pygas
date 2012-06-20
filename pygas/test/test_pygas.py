@@ -28,7 +28,20 @@ class ComplexNumber(object):
         self.real = factor * n
 
 
-class TestThreads(unittest.TestCase):
+class PygasTestCase(unittest.TestCase):
+    """
+    Class to manage all PyGAS test cases.
+    """
+    def setUp(self):
+        """ Execute a barrier to prevent tests from interfering. """
+        barrier();
+
+    def tearDown(self):
+        """ Execute a barrier to prevent tests from interfering. """
+        barrier();
+
+
+class TestThreads(PygasTestCase):
     """
     Simple test case to ensure that there are
     at least a given number of threads executing
@@ -41,7 +54,7 @@ class TestThreads(unittest.TestCase):
         self.assertGreaterEqual(THREADS, 4)
 
 
-class TestConstants(unittest.TestCase):
+class TestConstants(PygasTestCase):
     """
     Test constants.
     """
@@ -66,7 +79,7 @@ class TestConstants(unittest.TestCase):
         self.assertLess(MYTHREAD, THREADS)
 
 
-class TestShare(unittest.TestCase):
+class TestShare(PygasTestCase):
 
     def test_share_simple_1(self):
         """
@@ -96,9 +109,10 @@ class TestShare(unittest.TestCase):
         self.assertEqual(proxyproxy.owner, THREADS-1)
 
 
-class TestRead(unittest.TestCase):
-
-    @unittest.skip("deadlocks")
+class TestRead(PygasTestCase):
+    """
+    Test reads of remote attributes.
+    """
     def test_read_1(self):
         """
         Attributes of shared builtin objects can be read.
@@ -107,17 +121,16 @@ class TestRead(unittest.TestCase):
         self.assertEqual(tid.real, 1)
         self.assertEqual(tid.imag, 0)
 
-    @unittest.skip("deadlocks")
     def test_read_2(self):
         """
         Attributes of shared user-defined objects can be read.
         """
-        obj = ComplexNumber(MYTHREAD, MYTHREAD)
+        obj = ComplexNumber(MYTHREAD, MYTHREAD*10)
         cnum = share(obj, from_thread=1)
         self.assertEqual(cnum.real, 1)
-        self.assertEqual(cnum.imag, 0)
+        self.assertEqual(cnum.imag, 10)
 
-class TestRPC(unittest.TestCase):
+class TestRPC(PygasTestCase):
     """
     Test procedure calls on remote objects.
     """

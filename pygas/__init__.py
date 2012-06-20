@@ -34,11 +34,11 @@ def apply_dynamic_handler(data):
     op, capsule, name, args, kwargs = deserialize(data)
     obj = gasnet.capsule_to_obj(capsule) if capsule else __builtins__
     if op is GETATTR:
-        result = Proxy(getattr(obj,name))
+        result = getattr(obj,name)
     elif op is SETATTR:
         result = setattr(obj, name, args[0])
     elif op is CALL:
-        result = Proxy(getattr(obj,name)(*args,**kwargs))
+        result = getattr(obj,name)(*args,**kwargs)
     elif op is RESOLVE:
         result = obj
     else:
@@ -86,7 +86,7 @@ class Proxy(object):
         result = apply_dynamic(self.owner, data)
         return deserialize(result)
 
-    def __resolve__(self):
+    def resolve(self):
         """
         Return a copy of a object?
         Replace with proxy and move object to caller?
@@ -129,9 +129,7 @@ def broadcast(obj, from_thread=0):
         data = serialize(obj)
     else:
         data = '_'*SIZEOFPROXY # FIXME: nbytes must be same across all callers
+                               # only works for broadcasting proxies.
 
     gasnet.broadcast(data, from_thread)
-
-    if MYTHREAD != from_thread:
-        obj = deserialize(data)
-    return obj
+    return deserialize(data)
