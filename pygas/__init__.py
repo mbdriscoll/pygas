@@ -2,6 +2,9 @@
 Doc string.
 """
 
+from __future__ import division
+
+import time     # for timer context manager
 import atexit   # for registering gasnet_exit at termination
 
 from cPickle import loads as deserialize
@@ -133,3 +136,32 @@ def broadcast(obj, from_thread=0):
 
     gasnet.broadcast(data, from_thread)
     return deserialize(data)
+
+class SplitTimer(object):
+    """
+    A context manager to simplify timing sections of code. Use like:
+        with SplitTimer("put %d bytes took" % msg_size):
+            compute()
+    """
+    def __init__(self, name="timer", fmt="%s %4.20f"):
+        """ Initialize this timer with a name and printing format. """
+        self._name = name
+        self._fmt = fmt
+        self._times = []
+
+    def __enter__(self):
+        """ Start timing. """
+        self._splitstart = time.time()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """ Stop timing and print result. """
+        end = time.time()
+        self._times.append(end - self._splitstart)
+
+    def average(self):
+        """ Average time of all splits. """
+        return (sum(self._times) / len(self._times)) * 1e6
+
+    def report(self):
+        """ Return report of performance. """
+        return "%s %f" % (self._name, self.average())
