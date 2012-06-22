@@ -4,7 +4,7 @@ Doc string.
 
 from __future__ import division
 
-import time     # for timer context manager
+import timeit # for timer context manager
 import atexit   # for registering gasnet_exit at termination
 
 from cPickle import loads as deserialize
@@ -147,15 +147,17 @@ class SplitTimer(object):
         """ Initialize this timer with a name and printing format. """
         self._name = name
         self._fmt = fmt
+        self._timer = timeit.default_timer
         self._times = []
 
     def __enter__(self):
         """ Start timing. """
-        self._splitstart = time.time()
+        self._splitstart = self._timer()
+        return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         """ Stop timing and print result. """
-        end = time.time()
+        end = self._timer()
         self._times.append(end - self._splitstart)
 
     def average(self):

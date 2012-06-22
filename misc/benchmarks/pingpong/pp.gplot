@@ -1,0 +1,7 @@
+set xlabel "Message size (bytes)"
+set ylabel "Time [us]"
+set log y
+set log x
+set key left
+plot "py.out" u 1:2 t "PyGAS" w linespoints, \
+     "upc.out" u 1:2 t "UPC" w linespoints

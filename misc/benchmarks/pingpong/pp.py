@@ -19,13 +19,12 @@ def main():
 
     for msg_size in [2**x for x in range(28)]:
         if MYTHREAD == 0:
-            timer = SplitTimer("%d " % msg_size)
             for warmup in range(NUM_WARMUPS):
                 string = 'A'*msg_size
                 sm1.val = string
             for trial in range(NUM_TRIALS):
                 string = 'a'*msg_size
-                with timer:
+                with SplitTimer("%d " % msg_size) as timer:
                     sm1.val = string
             print timer.report()
         barrier()
