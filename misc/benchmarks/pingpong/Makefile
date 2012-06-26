@@ -18,7 +18,7 @@ py.out: pp.py
 
 upc.out: pp
 	@echo Running UPC benchmark
-	$(UPCRUN) -n 2 -shared-heap 2GB $^ | tee $@
+	$(UPCRUN) -q -n 2 -shared-heap 2GB $^ | tee $@
 
 pp: pp.upc
 	@echo Compiling UPC benchmark
