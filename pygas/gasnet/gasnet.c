@@ -195,6 +195,17 @@ pygas_gasnet_getenv(PyObject *self, PyObject *args)
 }
 
 static PyObject *
+pygas_AMMaxMedium(PyObject *self, PyObject *args)
+{
+    int ok;
+    ok = PyArg_ParseTuple(args, "");
+
+    size_t value = gasnet_AMMaxMedium();
+
+    return Py_BuildValue("i", value);
+}
+
+static PyObject *
 pygas_gasnet_barrier_wait(PyObject *self, PyObject *args)
 {
     int ok;
@@ -295,6 +306,9 @@ static PyMethodDef pygas_gasnet_methods[] = {
     {"barrier_notify", pygas_gasnet_barrier_notify, METH_VARARGS, "Execute notify for split-phase barrier."},
     {"barrier_wait",   pygas_gasnet_barrier_wait,   METH_VARARGS, "Execute wait for split-phase barrier."},
     {"barrier_try",    pygas_gasnet_barrier_try,    METH_VARARGS, "Execute try for split-phase barrier."},
+
+    // AM function. Probably will hide later.
+    {"AMMaxMedium",    pygas_AMMaxMedium,           METH_VARARGS, "Max number of bytes to send in single AM request."},
 
     // Collectives. TODO refactor into separate file
     {"coll_init",      pygas_gasnet_coll_init,      METH_VARARGS, "Initialize collectives."},
