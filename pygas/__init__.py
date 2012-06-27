@@ -53,35 +53,45 @@ gasnet.set_apply_dynamic_handler(apply_dynamic_handler)
 class Proxy(object):
 
     def __init__(self, obj, owner=MYTHREAD):
-        self.capsule = gasnet.obj_to_capsule(obj)
-        self.owner = owner
+        """
+        Initialize this proxy for the given object. To avoid
+        conflicts with __setattr__, use the superclass' version of
+        the method.
+        """
+        object.__setattr__(self, "capsule", gasnet.obj_to_capsule(obj))
+        object.__setattr__(self, "owner", owner)
 
     def __getstate__(self):
+        """
+        Return an object representing the state of this proxy.
+        """
         return (self.capsule, self.owner)
 
     def __setstate__(self, state):
-        self.capsule, self.owner = state
+        """
+        Reconstruct the object state from the pickle representation.
+        STATE is a tuple of the form: (self.capsule, self.owner)
+        """
+        object.__setattr__(self, "capsule", state[0])
+        object.__setattr__(self, "owner", state[1])
 
     def __getattr__(self, name):
         """
-        Get a proxy to a remote attribute.
+        Get a copy of a remote attribute.
         """
         from pygas.gasnet import apply_dynamic
-        data = serialize((GETATTR, self.capsule, name, [], {}))
+        data = serialize((GETATTR, self.capsule, name, None, None))
         result = apply_dynamic(self.owner, data)
         return deserialize(result)
 
-#    def __setattr__(self, name, value):
-#        """
-#        Set a remote attribute to a proxy. If the value is private,
-#        create a proxy to it. If the value is already a proxy, copy
-#        it.
-#        """
-#        if isinstance(value, Proxy):
-#            data = serialize((name, value))
-#        else:
-#            data = serialize((name, Proxy(value)))
-#        set_proxy(self.owner, data)
+    def __setattr__(self, name, value):
+        """
+        Set a remote attribute to a copy of a local object.
+        """
+        from pygas.gasnet import apply_dynamic
+        data = serialize((SETATTR, self.capsule, name, [value], None))
+        result = apply_dynamic(self.owner, data)
+        return deserialize(result)
 
     def __call__(self, *args, **kwargs):
         from pygas.gasnet import apply_dynamic

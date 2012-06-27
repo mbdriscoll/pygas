@@ -113,7 +113,7 @@ class TestRead(PygasTestCase):
     """
     Test reads of remote attributes.
     """
-    def test_read_1(self):
+    def test_read_builtin(self):
         """
         Attributes of shared builtin objects can be read.
         """
@@ -121,7 +121,7 @@ class TestRead(PygasTestCase):
         self.assertEqual(tid.real, 1)
         self.assertEqual(tid.imag, 0)
 
-    def test_read_2(self):
+    def test_read_userdef(self):
         """
         Attributes of shared user-defined objects can be read.
         """
@@ -131,11 +131,11 @@ class TestRead(PygasTestCase):
         self.assertEqual(cnum.imag, 10)
 
 
-class TestRead(PygasTestCase):
+class TestWrite(PygasTestCase):
     """
     Test writes of remote attributes.
     """
-    def test_write(self):
+    def test_write_1(self):
         """
         Attributes of shared user-defined objects can be written.
         """
