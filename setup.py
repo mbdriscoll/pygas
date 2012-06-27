@@ -5,15 +5,14 @@ from distutils.errors import DistutilsSetupError
 from distutils import sysconfig
 
 # TODO cmd-line or environ config ability (--with-gasnet=/path/to/gasnet)
-GASNET_PATH    = '/ebs/opt/gasnet-1.18.2'
+GASNET_PATH    = '/global/u1/d/driscoll/carver/opt/gasnet-1.18.2'
 GASNET_CONDUIT = 'mpi'
-MPI_PATH       = '/usr/lib/mpich2'
+MPI_PATH       = '/usr/common/usg/openmpi/1.4.5/gcc'
 
 # Sanity check gasnet installation.
 gasnet_h_path = path.join(GASNET_PATH, "include", "gasnet.h")
 if not path.exists(gasnet_h_path):
     raise DistutilsSetupError("Cannot locate %s." % gasnet_h_path)
-del gasnet_h_path
 
 # Only allow supported conduits. Supporting more conduits is a matter of
 # updating this script to configure them properly.
@@ -30,7 +29,6 @@ del gasnet_core_h_path
 mpi_h_path = path.join(MPI_PATH, "include", "mpi.h")
 if not path.exists(mpi_h_path):
     raise DistutilsSetupError("Cannot locate %s." % mpi_h_path)
-del mpi_h_path
 
 # Set up include dirs
 include_dirs = [
@@ -45,16 +43,17 @@ library_dirs = [
 ]
 
 # Set up libraries
-libraries = ['gasnet-mpi-par', 'ammpi', 'mpich', 'mpl']
+libraries = ['gasnet-mpi-par', 'mpi', 'ammpi']
 if sys.platform.startswith('linux'):
   libraries += ['rt']
-elif sys.platform.startswith('darwin'):
-  libraries += ['pmpich']
+#elif sys.platform.startswith('darwin'):
+#  libraries += ['pmpich']
 
 # Set up define_macros
 define_macros = [
    ('GASNET_ALLOW_OPTIMIZED_DEBUG', 1),
    ('GASNETT_USE_GCC_ATTRIBUTE_MAYALIAS', 1),
+   ('GASNET_CONDUIT_MPI', 1),
    ('DEBUG', 1),
 ]
 
