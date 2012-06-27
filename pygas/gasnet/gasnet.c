@@ -264,6 +264,7 @@ pygas_gasnet_coll_broadcast(PyObject *self, PyObject *args)
     assert( PyArg_ParseTuple(args, "O|i:from_thread", &obj, &from_thread) );
     assert( !PyObject_GetBuffer(obj, &pb, PyBUF_SIMPLE) );
 
+    assert( pb.len > 0);
     const int flags = GASNET_COLL_IN_MYSYNC|GASNET_COLL_OUT_MYSYNC|GASNET_COLL_LOCAL;
     gasnet_coll_broadcast(GASNET_TEAM_ALL, pb.buf, from_thread, pb.buf, pb.len, flags);
 
