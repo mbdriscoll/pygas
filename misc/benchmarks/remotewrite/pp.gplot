@@ -1,4 +1,4 @@
-set title "Time for Synchronous Remote Read"
+set title "Time for Synchronous Remote Writes"
 set xlabel "Message size (bytes)"
 set ylabel "Time [us]"
 set log y
