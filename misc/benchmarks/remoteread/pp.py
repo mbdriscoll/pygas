@@ -4,7 +4,7 @@ import time
 
 from pygas import *
 
-NUM_TRIALS = 100
+NUM_TRIALS = 1
 
 class ObjectManager(object):
     def __init__(self):
@@ -25,7 +25,7 @@ def main():
                 with timer:
                     remote_arr = om_proxy.val
                 assert remote_arr == '1'*msg_size
-            print timer.report()
+            #print timer.report()
         barrier()
 
 if __name__ == '__main__':

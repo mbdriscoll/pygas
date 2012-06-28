@@ -14,7 +14,7 @@ graph.png: py.out upc.out
 
 py.out: pp.py
 	@echo Running Python benchmark
-	PYTHONPATH=$(PYTHONPATH) $(MPIRUN) -n 2 $(PYTHON) $^ | tee $@
+	PYTHONPATH=$(PYTHONPATH) $(MPIRUN) -outfile-pattern=test-%r.err -n 2 $(PYTHON) $^ | tee $@
 
 upc.out: pp
 	@echo Running UPC benchmark

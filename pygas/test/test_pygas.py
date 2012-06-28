@@ -135,7 +135,7 @@ class TestWrite(PygasTestCase):
     """
     Test writes of remote attributes.
     """
-    def test_write_1(self):
+    def test_write_userdef(self):
         """
         Attributes of shared user-defined objects can be written.
         """
@@ -143,6 +143,8 @@ class TestWrite(PygasTestCase):
         cnum = share(obj, from_thread=1)
         cnum.real = 300
         self.assertEqual(cnum.real, 300)
+        cnum.imag = 400
+        self.assertEqual(cnum.imag, 400)
 
 
 class TestRPCUserDefined(PygasTestCase):

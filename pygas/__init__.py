@@ -79,10 +79,20 @@ class Proxy(object):
         """
         Get a copy of a remote attribute.
         """
+        from time import time
+        times = {}
         from pygas.gasnet import apply_dynamic
+        times['A'] = time()
         data = serialize((GETATTR, self.capsule, name, None, None))
+        times['B'] = time()
         result = apply_dynamic(self.owner, data)
-        return deserialize(result)
+        times['I'] = time()
+        answer = deserialize(result)
+        times['J'] = time()
+        for k in times.keys():
+            print " %s %2.23f" % (k, times[k]),
+        print "0 %d" % len(answer)
+        return answer
 
     def __setattr__(self, name, value):
         """
@@ -143,7 +153,6 @@ def broadcast(obj, from_thread=0):
     else:
         data = '_'*SIZEOFPROXY # FIXME: nbytes must be same across all callers
                                # only works for broadcasting proxies.
-
     gasnet.broadcast(data, from_thread)
     return deserialize(data)
 
