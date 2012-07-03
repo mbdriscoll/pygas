@@ -1,6 +1,7 @@
 UPCC=upcc
 UPCRUN=upcrun
 MPIRUN=mpirun
+GASNETRUN=gasnetrun_ibv
 PYTHON=python
 GNUPLOT=gnuplot
 PYTHONPATH=../../..
@@ -14,7 +15,7 @@ graph.png: py.out upc.out
 
 py.out: pp.py
 	@echo Running Python benchmark
-	PYTHONPATH=$(PYTHONPATH) $(MPIRUN) -outfile-pattern=test-%r.err -n 2 $(PYTHON) $^ | tee $@
+	PYTHONPATH=$(PYTHONPATH) $(GASNETRUN) -n 2 $(PYTHON) $^ | tee $@
 
 upc.out: pp
 	@echo Running UPC benchmark
@@ -22,7 +23,7 @@ upc.out: pp
 
 pp: pp.upc
 	@echo Compiling UPC benchmark
-	$(UPCC) -O -network=mpi -o $@ $^
+	$(UPCC) -O -o $@ $^
 
 .PHONY: clean
 

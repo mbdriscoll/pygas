@@ -45,12 +45,13 @@ typedef struct msg_info {
 static PyObject *
 pygas_gasnet_init(PyObject *self, PyObject *args)
 {
-    int argc = 0;
+    int argc = 1;
     char **argv = (char**) malloc(argc * sizeof(char*));
+    argv[0] = "";
 
     int status = gasnet_init(&argc, &argv);
 
-    free(argv);
+    //free(argv);
     return Py_BuildValue("i", status);
 }
 
@@ -75,7 +76,7 @@ pygas_gasnet_apply_dynamic(PyObject *self, PyObject *args)
     msg_info_t *reply_info = (msg_info_t*) &reply[0];
     PyObject *result = Py_BuildValue("s#", &reply[sizeof(msg_info_t)], reply_info->nbytes);
 
-    free(reply);
+    //free(reply);
     PRINTTIME('H');
     return result;
 }
@@ -125,7 +126,7 @@ pygas_async_request_handler(void* request) {
 
     gasnet_AMRequestMedium0(request_info->sender, APPLY_DYNAMIC_REPLY_HIDX, &reply, sizeof(reply));
 
-    free(request);
+    //free(request);
     PRINTTIME('F');
     printf("\n");
     return 0;
@@ -280,6 +281,8 @@ pygas_gasnet_coll_broadcast(PyObject *self, PyObject *args)
     assert( !PyObject_GetBuffer(obj, &pb, PyBUF_C_CONTIGUOUS) );
 
     assert( pb.len > 0);
+    assert( pb.len < gasnet_AMMaxMedium());
+    
     const int flags = GASNET_COLL_IN_MYSYNC|GASNET_COLL_OUT_MYSYNC|GASNET_COLL_LOCAL;
     gasnet_coll_broadcast(GASNET_TEAM_ALL, pb.buf, from_thread, pb.buf, pb.len, flags);
 

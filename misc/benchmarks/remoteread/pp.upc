@@ -3,7 +3,7 @@
 
 #include "upc.h"
 
-#define MAXBYTES (1 << 16)
+#define MAXBYTES (1 << 18)
 #define NUMTRIALS 1000
 
 int main(int argc, char **argv) {
@@ -15,23 +15,32 @@ int main(int argc, char **argv) {
              upc_memput(&buf[1], "foo", 4);
              upc_memput(&buf[1], "bar", 4);
              upc_memput(&buf[1], "baz", 4);
+             upc_memput(&buf[1], "foo", 4);
+             upc_memput(&buf[1], "foo", 4);
+             upc_memput(&buf[1], "foo", 4);
+             upc_memput(&buf[1], "bar", 4);
+             upc_memput(&buf[1], "baz", 4);
+             upc_memput(&buf[1], "bar", 4);
+             upc_memput(&buf[1], "baz", 4);
+             upc_memput(&buf[1], "bar", 4);
+             upc_memput(&buf[1], "baz", 4);
 
-             bupc_tick_t total_time = 0;
+             double total_time = 0.0;
              char *msg = (char*) malloc(msg_size);
+             struct timeval t_start, t_end;
+             assert(upc_threadof(&buf[1]) == 1);
              for(int trial = 0; trial < NUMTRIALS; trial++) {
-                 assert(upc_threadof(&buf[1]) == 1);
                  memset(msg, 'c', msg_size);
-                 bupc_tick_t start = bupc_ticks_now();
+                 gettimeofday(&t_start,(struct timezone *)NULL);
                  {
                      upc_memput(&buf[1], msg, msg_size);
                  }
-                 bupc_tick_t end = bupc_ticks_now();
-                 total_time += (end-start);
+                 gettimeofday(&t_end,(struct timezone *)NULL);
+                 total_time += (double) (t_end.tv_usec - t_start.tv_usec);
              }
              free(msg);
 
-             printf("%d %u\n",
-                     msg_size, (int) bupc_ticks_to_ns(total_time)/NUMTRIALS);
+             printf("%d %f\n", msg_size, total_time/NUMTRIALS);
          }
          upc_barrier;
      }

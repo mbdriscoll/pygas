@@ -1,0 +1,20 @@
+#set term png
+#set output "breakdown.png"
+
+set title "Time Breakdown for Synchronous Remote Reads"
+set xlabel "Message size (bytes)"
+set ylabel "Time [us]"
+set log x
+set logscale x 2
+
+set key left top
+
+plot [1:1024][:120] \
+'results.out' using 1:8 t "Local Deserialize" w filledcurves x1 linewidth 8, \
+'results.out' using 1:7 t "Local Async" w filledcurves x1 linewidth 8, \
+'results.out' using 1:6 t "Recv Xfer" w filledcurves x1 linewidth 8, \
+'results.out' using 1:5 t "Remote Apply" w filledcurves x1 linewidth 8, \
+'results.out' using 1:4 t "Remote Async" w filledcurves x1 linewidth 8, \
+'results.out' using 1:3 t "Send Xfer" w filledcurves x1 linewidth 8, \
+'results.out' using 1:2 t "Serialize" w filledcurves x1 linewidth 8, \
+'results.out' using 1:9 t "UPC" w lines
