@@ -26,11 +26,9 @@ def matmul_dist(A_ij, B_ij, n, c):
 
     start_time = time()
     for k in range(sqrt_P):
-        row_root = row_comm.Get_cart_rank([k])
-        col_root = col_comm.Get_cart_rank([k])
-        a = row_comm.bcast(A_ij, root=row_root)
-        b = col_comm.bcast(B_ij, root=col_root)
-        C_ij += a.dot(b)
+        A = row_comm.bcast(A_ij, root=row_comm.Get_cart_rank([k]))
+        B = col_comm.bcast(B_ij, root=col_comm.Get_cart_rank([k]))
+        C_ij += A.dot(B)
     end_time = time()
 
     running_time = end_time - start_time
