@@ -22,9 +22,11 @@ assert col_comm.Get_size() == sqrt_P
 assert sqrt_P**2 == mpi_size, "P must be perfect square"
 
 def matmul_dist(A_ij, B_ij, n, c):
-    C_ij = np.zeros(A_ij.shape)
-
+    """
+    Perform n**3 multiplication using all processors.
+    """
     start_time = time()
+    C_ij = np.zeros(A_ij.shape)
     for k in range(sqrt_P):
         A = row_comm.bcast(A_ij, root=row_comm.Get_cart_rank([k]))
         B = col_comm.bcast(B_ij, root=col_comm.Get_cart_rank([k]))
@@ -36,8 +38,9 @@ def matmul_dist(A_ij, B_ij, n, c):
 
 def matmul_serial(A_ij, B_ij, n):
     """
-    Collectively multiply the subblocks denoted by
-    A_ij and B_ij on each thread.
+    Multiply the subblocks denoted by
+    A_ij and B_ij on thread 0. Use this answer
+    to determined correctness for other approaches.
     """
     Al = row_comm.gather(A_ij, root=0)
     Al = np.hstack(Al) if j == 0 else None
