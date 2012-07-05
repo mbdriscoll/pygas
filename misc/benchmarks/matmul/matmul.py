@@ -8,29 +8,48 @@ import numpy as np
 from time import time
 from mpi4py import MPI
 
-NUM_TRIALS = 10
-
 mpi_comm = MPI.COMM_WORLD
 mpi_size = mpi_comm.Get_size()
 mpi_rank = mpi_comm.Get_rank()
-mpi_rank_j = mpi_rank_i = None
+sqrt_P = int(math.sqrt(mpi_size))
+mpi_cart = MPI.COMM_WORLD.Create_cart((sqrt_P,sqrt_P))
+row_comm = mpi_cart.Sub([0,1])
+col_comm = mpi_cart.Sub([1,0])
+i,j = mpi_cart.Get_coords(mpi_rank)
 
-def time_to_gflops(t, n):
-    return 1.e-9 * n**3 / t
+assert row_comm.Get_size() == sqrt_P
+assert col_comm.Get_size() == sqrt_P
+assert sqrt_P**2 == mpi_size, "P must be perfect square"
 
-def matmul_ca(A, B, n, c):
-    pass
+def matmul_dist(A_ij, B_ij, n, c):
+    C_ij = np.zeros(A_ij.shape)
+
+    start_time = time()
+    for k in range(sqrt_P):
+        row_root = row_comm.Get_cart_rank([k])
+        col_root = col_comm.Get_cart_rank([k])
+        a = row_comm.bcast(A_ij, root=row_root)
+        b = col_comm.bcast(B_ij, root=col_root)
+        C_ij += a.dot(b)
+    end_time = time()
+
+    running_time = end_time - start_time
+    return C_ij, running_time
 
 def matmul_serial(A_ij, B_ij, n):
     """
     Collectively multiply the subblocks denoted by
     A_ij and B_ij on each thread.
     """
-    A = np.empty((n,n))
-    mpi_comm.Gather(A_ij, A, root=0)
+    Al = row_comm.gather(A_ij, root=0)
+    Al = np.hstack(Al) if j == 0 else None
+    Al = col_comm.gather(Al, root=0)
+    A = np.vstack(Al) if mpi_rank == 0 else None
 
-    B = np.empty((n,n))
-    mpi_comm.Gather(B_ij, B, root=0)
+    Bl = row_comm.gather(B_ij, root=0)
+    Bl = np.hstack(Bl) if j == 0 else None
+    Bl = col_comm.gather(Bl, root=0)
+    B = np.vstack(Bl) if mpi_rank == 0 else None
 
     if mpi_rank == 0:
         start_time = time()
@@ -41,9 +60,10 @@ def matmul_serial(A_ij, B_ij, n):
         C = None
         total_time = 0
 
-    C_ij = np.empty(A_ij.shape)
-    mpi_comm.Scatter(C, C_ij, root=0)
-
+    Cl = np.vsplit(C, col_comm.Get_size()) if mpi_rank == 0 else None
+    Cl = col_comm.scatter(Cl, root=0)
+    Cl = np.hsplit(Cl, row_comm.Get_size()) if j == 0 else None
+    C_ij = row_comm.scatter(Cl, root=0)
     return C_ij, total_time
 
 def main():
@@ -57,17 +77,20 @@ def main():
     P = mpi_size
 
     assert P % c == 0, "P must be divisible by c"
+    assert n % sqrt_P == 0, "n must be divisible by sqrt(P)"
     blk_size = n / math.sqrt(P/c)
 
     A_ij = np.random.rand(blk_size, blk_size)
     B_ij = np.random.rand(blk_size, blk_size)
+
     C_ij, running_time = matmul_serial(A_ij, B_ij, n)
-
     if mpi_rank == 0:
-        print "Serial ran at %f GFlop/s" % (time_to_gflops(running_time, n))
+        print "Serial ran at %f GFlop/s" % (1.e-9 * n**3 / running_time)
 
-    #ca_C_ij, running_time = matmul_ca(A_ij, B_ij, n, c)
-    #assert C_ij == ca_C_ij, "Incorrect answer for matmul_ca"
+    ca_C_ij, running_time = matmul_dist(A_ij, B_ij, n, c)
+    if mpi_rank == 0:
+        print "Dist ran at %f GFlop/s" % (1.e-9 * n**3 / running_time)
+    assert np.allclose(C_ij, ca_C_ij), "Incorrect answer for matmul_dist"
 
 if __name__ == "__main__":
     main()
