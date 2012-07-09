@@ -6,13 +6,14 @@ import optparse
 import math
 import numpy as np
 from time import time
+from copy import copy
 from mpi4py import MPI
 
 mpi_comm = MPI.COMM_WORLD
 mpi_size = mpi_comm.Get_size()
 mpi_rank = mpi_comm.Get_rank()
 sqrt_P = int(math.sqrt(mpi_size))
-mpi_cart = MPI.COMM_WORLD.Create_cart((sqrt_P,sqrt_P))
+mpi_cart = MPI.COMM_WORLD.Create_cart((sqrt_P,sqrt_P), periods=[1,1])
 row_comm = mpi_cart.Sub([0,1])
 col_comm = mpi_cart.Sub([1,0])
 i,j = mpi_cart.Get_coords(mpi_rank)
@@ -28,11 +29,52 @@ def matmul_dist(A_ij, B_ij, n, c):
     start_time = time()
     C_ij = np.zeros(A_ij.shape)
     for k in range(sqrt_P):
-        A = row_comm.bcast(A_ij, root=row_comm.Get_cart_rank([k]))
-        B = col_comm.bcast(B_ij, root=col_comm.Get_cart_rank([k]))
+        A,B = copy(A_ij), copy(B_ij)
+        row_comm.Bcast(A, root=row_comm.Get_cart_rank([k]))
+        col_comm.Bcast(B, root=col_comm.Get_cart_rank([k]))
         C_ij += A.dot(B)
     end_time = time()
 
+    running_time = end_time - start_time
+    return C_ij, running_time
+
+def matmul_cannon_slow(A_ij, B_ij):
+    # change layout
+    A_ij, B_ij = copy(A_ij), copy(B_ij)
+    row_src,row_dest = row_comm.Shift(0, i)
+    col_src,col_dest = col_comm.Shift(0, j)
+    row_comm.Sendrecv_replace(A_ij, dest=row_dest, sendtag=0, source=row_src)
+    col_comm.Sendrecv_replace(B_ij, dest=col_dest, sendtag=0, source=col_src)
+    # run cannon
+    row_src,row_dest = row_comm.Shift(0, 1)
+    col_src,col_dest = col_comm.Shift(0, 1)
+    start_time = time()
+    C_ij = np.zeros(A_ij.shape)
+    for k in range(sqrt_P):
+        C_ij += A_ij.dot(B_ij)
+        A_ij = row_comm.sendrecv(A_ij, dest=row_dest, sendtag=0, source=row_src)
+        B_ij = col_comm.sendrecv(B_ij, dest=col_dest, sendtag=0, source=col_src)
+    end_time = time()
+    running_time = end_time - start_time
+    return C_ij, running_time
+
+def matmul_cannon(A_ij, B_ij):
+    # change layout
+    A_ij, B_ij = copy(A_ij), copy(B_ij)
+    row_src,row_dest = row_comm.Shift(0, i)
+    col_src,col_dest = col_comm.Shift(0, j)
+    row_comm.Sendrecv_replace(A_ij, dest=row_dest, sendtag=0, source=row_src)
+    col_comm.Sendrecv_replace(B_ij, dest=col_dest, sendtag=0, source=col_src)
+    # run cannon
+    row_src,row_dest = row_comm.Shift(0, 1)
+    col_src,col_dest = col_comm.Shift(0, 1)
+    start_time = time()
+    C_ij = np.zeros(A_ij.shape)
+    for k in range(sqrt_P):
+        C_ij += A_ij.dot(B_ij)
+        row_comm.Sendrecv_replace(A_ij, dest=row_dest, sendtag=0, source=row_src)
+        col_comm.Sendrecv_replace(B_ij, dest=col_dest, sendtag=0, source=col_src)
+    end_time = time()
     running_time = end_time - start_time
     return C_ij, running_time
 
@@ -88,10 +130,20 @@ def main():
     if mpi_rank == 0:
         print "Serial ran at %f GFlop/s" % (1.e-9 * n**3 / running_time)
 
-    ca_C_ij, running_time = matmul_dist(A_ij, B_ij, n, c)
+    cannon_C_ij, running_time = matmul_cannon(A_ij, B_ij)
     if mpi_rank == 0:
-        print "Dist ran at %f GFlop/s" % (1.e-9 * n**3 / running_time)
-    assert np.allclose(C_ij, ca_C_ij), "Incorrect answer for matmul_dist"
+        print "Cannon ran at %f GFlop/s" % (1.e-9 * n**3 / running_time)
+    assert np.allclose(C_ij, cannon_C_ij), "Incorrect answer for matmul_cannon"
+
+    slow_cannon_C_ij, running_time = matmul_cannon(A_ij, B_ij)
+    if mpi_rank == 0:
+        print "Slow Cannon ran at %f GFlop/s" % (1.e-9 * n**3 / running_time)
+    assert np.allclose(C_ij, slow_cannon_C_ij), "Incorrect answer for matmul_cannon"
+
+    dist_C_ij, running_time = matmul_dist(A_ij, B_ij, n, c)
+    if mpi_rank == 0:
+        print "Dist   ran at %f GFlop/s" % (1.e-9 * n**3 / running_time)
+    assert np.allclose(C_ij, dist_C_ij), "Incorrect answer for matmul_dist"
 
 if __name__ == "__main__":
     main()
