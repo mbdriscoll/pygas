@@ -24,18 +24,25 @@ class MsgData(object):
         self.local_async = 0.
         self.local_unpickle = 0.
 
+        self.apply_dynamic = 0.
+
     def __add__(self, markers):
         self.points += 1
         assert markers['0'] == self.msg_size
 
         self.total += markers['J'] - markers['A']
         self.local_pickle += markers['B'] - markers['A']
-        self.send_xfer += markers['C'] - markers['B']
-        self.remote_async += markers['D'] - markers['C']
-        self.remote_apply += markers['E'] - markers['D']
-        self.recv_xfer += markers['G'] - markers['E']
-        self.local_async += markers['H'] - markers['G']
-        self.local_unpickle += markers['J'] - markers['H']
+        self.apply_dynamic += markers['I'] - markers['B']
+        self.local_unpickle += markers['J'] - markers['I']
+
+        try:
+            self.send_xfer += markers['C'] - markers['B']
+            self.remote_async += markers['D'] - markers['C']
+            self.remote_apply += markers['E'] - markers['D']
+            self.recv_xfer += markers['G'] - markers['E']
+            self.local_async += markers['H'] - markers['G']
+        except:
+            pass
         
 
     def __str__(self):
@@ -55,7 +62,8 @@ class MsgData(object):
 
     def gplot(self):
         total = 0.
-        data = [self.local_pickle, self.send_xfer, self.remote_async, self.remote_apply, self.recv_xfer, self.local_async, self.local_unpickle]
+        #data = [self.local_pickle, self.send_xfer, self.remote_async, self.remote_apply, self.recv_xfer, self.local_async, self.local_unpickle, self.apply_dynamic]
+        data = [self.local_pickle, self.apply_dynamic, self.local_unpickle]
         print self.msg_size,
         for val in data:
             total += val

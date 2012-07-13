@@ -77,7 +77,7 @@ pygas_gasnet_apply_dynamic(PyObject *self, PyObject *args)
     PyObject *result = Py_BuildValue("s#", &reply[sizeof(msg_info_t)], reply_info->nbytes);
 
     //free(reply);
-    PRINTTIME('H');
+    //PRINTTIME('H');
     return result;
 }
 
@@ -106,13 +106,13 @@ set_apply_dynamic_handler(PyObject *dummy, PyObject *args)
 
 int
 pygas_async_request_handler(void* request) {
-    PRINTTIME('D');
+    //PRINTTIME('D');
     msg_info_t* request_info = (msg_info_t*) request;
 
     PyObject *result = PyObject_CallFunction(apply_dynamic_handler, "(s#)", (char*) request+sizeof(msg_info_t), request_info->nbytes);
     assert(PyString_Check(result));
 
-    PRINTTIME('E');
+    //PRINTTIME('E');
 
     Py_ssize_t nbytes;
     char *data;
@@ -127,8 +127,7 @@ pygas_async_request_handler(void* request) {
     gasnet_AMRequestMedium0(request_info->sender, APPLY_DYNAMIC_REPLY_HIDX, &reply, sizeof(reply));
 
     //free(request);
-    PRINTTIME('F');
-    printf("\n");
+    //PRINTTIME('F'); printf("\n");
     return 0;
 }
 
@@ -139,13 +138,13 @@ pygas_apply_dynamic_request_handler(gasnet_token_t token, char* data, size_t nby
     memcpy(msg, data, nbytes);
     Py_AddPendingCall(pygas_async_request_handler, msg);
 
-    PRINTTIME('C');
+    //PRINTTIME('C');
 }
 
 void
 pygas_apply_dynamic_reply_handler(gasnet_token_t token, void* data, size_t nbytes)
 {
-    PRINTTIME('G');
+    //PRINTTIME('G');
     char *reply = (char*) malloc(nbytes);
     memcpy(reply, data, nbytes);
 
@@ -170,9 +169,9 @@ pygas_gasnet_attach(PyObject *self, PyObject *args)
 static PyObject *
 pygas_gasnet_exit(PyObject *self, PyObject *args)
 {
-    int ok;
     int exitcode = 0;
-    ok = PyArg_ParseTuple(args, "|i", &exitcode);
+    if (!PyArg_ParseTuple(args, "|i", &exitcode))
+        return NULL;
 
     /* execute barrier to be compliant with spec */
     gasnet_barrier_notify(0, GASNET_BARRIERFLAG_ANONYMOUS);
@@ -200,9 +199,9 @@ pygas_gasnet_nodes(PyObject *self, PyObject *args)
 static PyObject *
 pygas_gasnet_getenv(PyObject *self, PyObject *args)
 {
-    int ok;
     const char *key, *value;
-    ok = PyArg_ParseTuple(args, "s", &key);
+    if (!PyArg_ParseTuple(args, "s", &key))
+        return NULL;
 
     value = gasnet_getenv(key);
 
@@ -212,8 +211,8 @@ pygas_gasnet_getenv(PyObject *self, PyObject *args)
 static PyObject *
 pygas_AMMaxMedium(PyObject *self, PyObject *args)
 {
-    int ok;
-    ok = PyArg_ParseTuple(args, "");
+    if (!PyArg_ParseTuple(args, ""))
+        return NULL;
 
     size_t value = gasnet_AMMaxMedium();
 
@@ -223,10 +222,10 @@ pygas_AMMaxMedium(PyObject *self, PyObject *args)
 static PyObject *
 pygas_gasnet_barrier_wait(PyObject *self, PyObject *args)
 {
-    int ok;
     int id = 0;
     int flags = GASNET_BARRIERFLAG_ANONYMOUS;
-    ok = PyArg_ParseTuple(args, "|ii", &id, &flags);
+    if (!PyArg_ParseTuple(args, "|ii", &id, &flags))
+        return NULL;
 
     PYGAS_GASNET_BARRIER_WAIT(id, flags);
 
@@ -236,10 +235,10 @@ pygas_gasnet_barrier_wait(PyObject *self, PyObject *args)
 static PyObject *
 pygas_gasnet_barrier_notify(PyObject *self, PyObject *args)
 {
-    int ok;
     int id = 0;
     int flags = GASNET_BARRIERFLAG_ANONYMOUS;
-    ok = PyArg_ParseTuple(args, "|ii", &id, &flags);
+    if (!PyArg_ParseTuple(args, "|ii", &id, &flags))
+        return NULL;
 
     gasnet_barrier_notify(id, flags);
 
@@ -249,10 +248,10 @@ pygas_gasnet_barrier_notify(PyObject *self, PyObject *args)
 static PyObject *
 pygas_gasnet_barrier_try(PyObject *self, PyObject *args)
 {
-    int ok;
     int id = 0;
     int flags = GASNET_BARRIERFLAG_ANONYMOUS;
-    ok = PyArg_ParseTuple(args, "|ii", &id, &flags);
+    if (!PyArg_ParseTuple(args, "|ii", &id, &flags))
+        return NULL;
 
     gasnet_barrier_try(id, flags);
 
@@ -262,8 +261,8 @@ pygas_gasnet_barrier_try(PyObject *self, PyObject *args)
 static PyObject *
 pygas_gasnet_coll_init(PyObject *self, PyObject *args)
 {
-    int ok;
-    ok = PyArg_ParseTuple(args, "");
+    if (!PyArg_ParseTuple(args, ""))
+        return NULL;
 
     gasnet_coll_init(0, 0, 0, 0, 0);
 
@@ -274,28 +273,38 @@ static PyObject *
 pygas_gasnet_coll_broadcast(PyObject *self, PyObject *args)
 {
     int from_thread = 0;
-    Py_buffer pb;
     PyObject *obj;
-    assert( PyArg_ParseTuple(args, "O|i:from_thread", &obj, &from_thread) );
-    assert( PyObject_CheckBuffer(obj) );
-    assert( !PyObject_GetBuffer(obj, &pb, PyBUF_C_CONTIGUOUS) );
+    Py_buffer pb;
+    if (!PyArg_ParseTuple(args, "Oi", &obj, &from_thread)) {
+        printf("Can't parse args\n");
+        return NULL;
+    }
 
-    assert( pb.len > 0);
-    assert( pb.len < gasnet_AMMaxMedium());
-    
     const int flags = GASNET_COLL_IN_MYSYNC|GASNET_COLL_OUT_MYSYNC|GASNET_COLL_LOCAL;
-    gasnet_coll_broadcast(GASNET_TEAM_ALL, pb.buf, from_thread, pb.buf, pb.len, flags);
 
-    PyBuffer_Release(&pb);
-    Py_RETURN_NONE;
+    if (PyObject_CheckBuffer(obj)) {
+        if (PyObject_GetBuffer(obj, &pb, PyBUF_C_CONTIGUOUS))
+            printf("Object can't GetBuffer\n");
+        gasnet_coll_broadcast(GASNET_TEAM_ALL, pb.buf, from_thread,
+                              pb.buf, pb.len, flags);
+        PyBuffer_Release(&pb);
+        Py_RETURN_NONE;
+    } else if (PyInt_Check(obj)) {
+        long val = PyInt_AsLong(obj);
+        gasnet_coll_broadcast(GASNET_TEAM_ALL, &val, from_thread,
+                              &val, sizeof(long), flags);
+        return PyInt_FromLong(val);
+    } else {
+        printf("Can't broadcast Python type not buf, int\n");
+        return NULL;
+    }
 }
 
 static PyObject *
 pygas_obj_to_capsule(PyObject *self, PyObject *args)
 {
-    int ok;
     PyObject *obj;
-    assert(PyArg_ParseTuple(args, "O", &obj));
+    PyArg_ParseTuple(args, "O", &obj);
 
     /* increment reference count. TODO distributed reference counting */
     Py_XINCREF(obj);
@@ -308,7 +317,7 @@ pygas_capsule_to_obj(PyObject *self, PyObject *args)
 {
     long ptr;
     PyObject *obj;
-    assert(PyArg_ParseTuple(args, "l", &ptr));
+    PyArg_ParseTuple(args, "l", &ptr);
 
     obj = (PyObject*) ptr;
     Py_XINCREF(obj);

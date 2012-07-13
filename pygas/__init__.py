@@ -11,6 +11,7 @@ from cPickle import loads as deserialize
 from cPickle import dumps as serialize
 
 import pygas.gasnet as gasnet
+from gasnet import apply_dynamic
 
 gasnet.init()
 gasnet.attach()
@@ -79,19 +80,18 @@ class Proxy(object):
         """
         Get a copy of a remote attribute.
         """
-        from time import time
-        times = {}
-        from pygas.gasnet import apply_dynamic
-        times['A'] = time()
+        #from time import time
+        #times = {}
+        #times['A'] = time()
         data = serialize((GETATTR, self.capsule, name, None, None))
-        times['B'] = time()
+        #times['B'] = time()
         result = apply_dynamic(self.owner, data)
-        times['I'] = time()
+        #times['I'] = time()
         answer = deserialize(result)
-        times['J'] = time()
-        for k in times.keys():
-            print " %s %2.23f" % (k, times[k]),
-        print "0 %d" % len(answer)
+        #times['J'] = time()
+        #for k in times.keys():
+        #    print " %s %2.23f" % (k, times[k]),
+        #print "0 %d" % len(answer)
         return answer
 
     def __setattr__(self, name, value):
@@ -119,14 +119,6 @@ class Proxy(object):
         result = apply_dynamic(self.owner, data)
         return deserialize(result)
 
-"""
-Set SIZEOFPROXY to indicate how much space should be reserved for
-incoming, serialized pygas.Proxy objects.
-"""
-foo = object()
-foo_proxy = Proxy(foo)
-foo_data = serialize(foo_proxy)
-SIZEOFPROXY = len(foo_data)
 
 def share(obj, from_thread=0):
     """
@@ -135,7 +127,7 @@ def share(obj, from_thread=0):
     if MYTHREAD == from_thread:
     	return broadcast(Proxy(obj), from_thread=from_thread)
     else:
-    	return broadcast("", from_thread=from_thread)
+    	return broadcast(None, from_thread=from_thread)
 
 def barrier(bid=0, flags=gasnet.BARRIERFLAG_ANONYMOUS):
     """
@@ -150,9 +142,11 @@ def broadcast(obj, from_thread=0):
     """
     if MYTHREAD == from_thread:
         data = serialize(obj)
+        size = len(data)
+        gasnet.broadcast(size, from_thread)
     else:
-        data = '_'*SIZEOFPROXY # FIXME: nbytes must be same across all callers
-                               # only works for broadcasting proxies.
+        size = gasnet.broadcast(0, from_thread)
+        data = '?'*size
     gasnet.broadcast(data, from_thread)
     return deserialize(data)
 
