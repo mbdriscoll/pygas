@@ -27,7 +27,7 @@ def matmul_dist(A_ij, B_ij, n, c):
     Perform n**3 multiplication using all processors.
     """
     start_time = time()
-    C_ij = np.zeros(A_ij.shape)
+    C_ij = np.zeros(A_ij.shape, dtype=np.double)
     for k in range(sqrt_P):
         A,B = copy(A_ij), copy(B_ij)
         row_comm.Bcast(A, root=row_comm.Get_cart_rank([k]))
@@ -106,19 +106,23 @@ def main():
     A_ij = np.random.rand(blk_size, blk_size)
     B_ij = np.random.rand(blk_size, blk_size)
 
+    """
     C_ij, running_time = matmul_serial(A_ij, B_ij, n)
     if mpi_rank == 0:
         print "Serial ran at %f GFlop/s" % (1.e-9 * n**3 / running_time)
+    """
 
     cannon_C_ij, running_time = matmul_cannon(A_ij, B_ij)
     if mpi_rank == 0:
-        print "Cannon ran at %f GFlop/s" % (1.e-9 * n**3 / running_time)
-    assert np.allclose(C_ij, cannon_C_ij), "Incorrect answer for matmul_cannon"
-
+        #print "Cannon ran at %f GFlop/s" % (1.e-9 * n**3 / running_time)
+        print "%d %f" % (blk_size, 1.e-9 * n**3 / running_time)
+    #assert np.allclose(C_ij, cannon_C_ij), "Incorrect answer for matmul_cannon"
+    """
     dist_C_ij, running_time = matmul_dist(A_ij, B_ij, n, c)
     if mpi_rank == 0:
         print "Dist   ran at %f GFlop/s" % (1.e-9 * n**3 / running_time)
     assert np.allclose(C_ij, dist_C_ij), "Incorrect answer for matmul_dist"
+    """
 
 if __name__ == "__main__":
     main()
