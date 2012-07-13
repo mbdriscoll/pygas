@@ -56,10 +56,10 @@ library_dirs = [
 
 # Set up define_macros
 define_macros = [
-   ('GASNET_ALLOW_OPTIMIZED_DEBUG', 1),
+   #('GASNET_ALLOW_OPTIMIZED_DEBUG', 1),
    ('GASNETT_USE_GCC_ATTRIBUTE_MAYALIAS', 1),
    ('GASNET_CONDUIT_IBV', 1),
-   ('DEBUG', 1),
+   #('DEBUG', 1),
 ]
 
 # Run setup.

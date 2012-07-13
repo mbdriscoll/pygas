@@ -15,7 +15,7 @@ graph.png: py.out upc.out
 
 py.out: pp.py
 	@echo Running Python benchmark
-	PYTHONPATH=$(PYTHONPATH) $(GASNETRUN) -n 2 $(PYTHON) $^ | tee $@
+	$(GASNETRUN) -n 2 $(PYTHON) $^ | tee $@
 
 upc.out: pp
 	@echo Running UPC benchmark
