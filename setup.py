@@ -1,21 +1,25 @@
-import sys
+import sys, platform
 from os import path, environ
 from distutils.core import setup, Extension
 from distutils.errors import DistutilsSetupError
 from distutils import sysconfig
 
-GASNET_CONDUIT = 'ibv'
-libraries = ['gasnet-ibv-par']
-
 # TODO cmd-line or environ config ability (--with-gasnet=/path/to/gasnet)
 if environ.has_key('NERSC_HOST') and environ['NERSC_HOST'] == 'carver':
+    GASNET_CONDUIT = 'ibv'
     GASNET_PATH    = '/global/homes/d/driscoll/carver/opt/gasnet-1.18.2'
     MPI_PATH       = '/usr/common/usg/openmpi/1.4.5/gcc'
-    libraries     += ['gcc', 'm', 'ibverbs', 'pthread', 'mpi', 'rt']
+    libraries      = ['gasnet-ibv-par', 'gcc', 'm', 'ibverbs', 'pthread', 'mpi', 'rt']
+elif platform.system() == 'Darwin':
+    GASNET_CONDUIT = 'mpi'
+    GASNET_PATH    = '/Users/mbdriscoll/opt/gasnet-1.18.2'
+    MPI_PATH       = '/opt/local'
+    libraries      = ['gasnet-mpi-par', 'mpich', 'pmpich', 'mpl']
 else:
+    GASNET_CONDUIT = 'mpi'
     GASNET_PATH    = '/ebs/opt/gasnet-1.18.2'
     MPI_PATH       = '/usr/lib/mpich2'
-    libraries     += ['mpich', 'pmpich', 'mpl']
+    libraries      = ['gasnet-mpi-par', 'mpich', 'pmpich', 'mpl']
 
 # Sanity check gasnet installation.
 gasnet_h_path = path.join(GASNET_PATH, "include", "gasnet.h")
@@ -35,15 +39,16 @@ if not path.exists(gasnet_core_h_path):
 del gasnet_core_h_path
 
 # Sanity check MPI installation.
-mpi_h_path = path.join(MPI_PATH, "include", "mpi.h")
-if not path.exists(mpi_h_path):
-    raise DistutilsSetupError("Cannot locate %s." % mpi_h_path)
-del mpi_h_path
+if GASNET_CONDUIT == 'mpi':
+    mpi_h_path = path.join(MPI_PATH, "include", "mpich2", "mpi.h")
+    if not path.exists(mpi_h_path):
+        raise DistutilsSetupError("Cannot locate %s." % mpi_h_path)
+    del mpi_h_path
 
 # Set up include dirs
 include_dirs = [
     path.join(GASNET_PATH, 'include'),
-    path.join(GASNET_PATH, 'include', 'ibv-conduit'),
+    path.join(GASNET_PATH, 'include', '%s-conduit' % GASNET_CONDUIT.lower()),
 ]
 
 # Set up library dirs
@@ -56,11 +61,15 @@ library_dirs = [
 
 # Set up define_macros
 define_macros = [
-   #('GASNET_ALLOW_OPTIMIZED_DEBUG', 1),
    ('GASNETT_USE_GCC_ATTRIBUTE_MAYALIAS', 1),
-   ('GASNET_CONDUIT_IBV', 1),
-   #('DEBUG', 1),
+   ('GASNET_CONDUIT_%s' % GASNET_CONDUIT.upper(), 1),
 ]
+
+if GASNET_CONDUIT.lower() == 'mpi':
+   define_macros += [
+       ('GASNET_ALLOW_OPTIMIZED_DEBUG', 1),
+       ('DEBUG', 1),
+   ]
 
 # Run setup.
 setup(
