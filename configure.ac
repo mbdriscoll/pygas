@@ -12,6 +12,8 @@ AC_PROG_CC
 AM_PATH_PYTHON
 AX_PYTHON_DEVEL
 
+AX_GASNET
+
 AC_CONFIG_FILES([
     Makefile
     pygas/Makefile

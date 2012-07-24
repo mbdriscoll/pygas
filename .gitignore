@@ -2,6 +2,9 @@
 *.pyc
 *.pyo
 *.so
+*.lo
+*.la
+*.a
 
 *.pickle
 *.rsrc
@@ -23,3 +26,4 @@ config.status
 configure
 libtool
 .deps
+.libs
