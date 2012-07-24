@@ -1,6 +1,9 @@
 include @GASNET_CONDUIT_INCLUDE_FILE@
 
+CONDUIT_LIBS = @GASNET_CONDUIT_LIBS@ $(CONDUIT_LIBS)
+
 pyexec_LTLIBRARIES = gasnet.la
+
 gasnet_la_SOURCES = gasnet.c
 gasnet_la_CPPFLAGS = $(PYTHON_CPPFLAGS) $(GASNET_CPPFLAGS)
 gasnet_la_LDFLAGS = $(PYTHON_LDFLAGS) -avoid-version -module $(GASNET_LDFLAGS)

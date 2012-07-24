@@ -83,11 +83,12 @@ if test "x$want_gasnet" = "xyes"; then
     CPPFLAGS=$OLD_CPPFLAGS
     LDFLAGS=$OLD_LDFLAGS
 
-    AC_MSG_NOTICE([using gasnet at $ac_gasnet_path])
-    AC_MSG_NOTICE([using gasnet conduit $ac_gasnet_conduit])
-
     AC_SUBST(GASNET_CONDUIT_INCLUDE_FILE,
              "$GASNET_CONDUIT_INCLUDE_DIR/$ac_gasnet_conduit-par.mak")
+    if test "x$ac_gasnet_conduit" = "xmpi" ; then
+        AX_MPI([], AC_MSG_WARN([Cannot configure MPI conduit.]))
+        AC_SUBST(GASNET_CONDUIT_LIBS, $MPILIBS)
+    fi
 
     AC_DEFINE(HAVE_GASNET)
 fi

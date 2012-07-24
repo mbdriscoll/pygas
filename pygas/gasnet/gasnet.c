@@ -1,6 +1,4 @@
 #include "Python.h"
-
-#define GASNET_PAR
 #include "gasnet.h"
 
 /* make this code a little more UPC-like */
