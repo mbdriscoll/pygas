@@ -53,14 +53,18 @@ gasnet.set_apply_dynamic_handler(_apply_dynamic_handler)
 
 class Proxy(object):
     """
-    A Proxy object.
+    The fundamental PyGAS object, the Proxy, wraps an existing
+    object and mimics its behavior, even when the original object
+    is on a remote thread. Proxy objects allow programs to query
+    the thread of the original object through the `owner` attribute.
     """
 
     def __init__(self, obj):
         """
-        Initialize this proxy for the given object. To avoid
-        conflicts with __setattr__, use the superclass' version of
-        the method.
+        Initialize a :class:`Proxy` to the given object.
+
+        :param obj: the object to be wrapped
+        :type obj: object
         """
         object.__setattr__(self, "capsule", gasnet.obj_to_capsule(obj))
         object.__setattr__(self, "owner", MYTHREAD)
@@ -82,6 +86,9 @@ class Proxy(object):
     def __getattr__(self, name):
         """
         Get a copy of a remote attribute.
+
+        :param name: the attribute name
+        :type name: string
         """
         data = serialize((GETATTR, self.capsule, name, None, None))
         result = apply_dynamic(self.owner, data)
@@ -91,6 +98,12 @@ class Proxy(object):
     def __setattr__(self, name, value):
         """
         Set a remote attribute to a copy of a local object.
+
+        :param name: the attribute name
+        :type name: string
+        :param value: the new attribute value
+        :type value: object
+        :rtype: None
         """
         from pygas.gasnet import apply_dynamic
         data = serialize((SETATTR, self.capsule, name, [value], None))
@@ -98,6 +111,16 @@ class Proxy(object):
         return deserialize(result)
 
     def __call__(self, *args, **kwargs):
+        """
+        Invoke the :method:`__call__` method on the original object and
+        return a copy of the result.
+
+        :param args: positional arguments
+        :type args: tuple
+        :param kwargs: keyword arguments
+        :type args: dictionary
+        :rtype: object
+        """
         from pygas.gasnet import apply_dynamic
         data = serialize((CALL, self.capsule, '__call__', args, kwargs))
         result = apply_dynamic(self.owner, data)
@@ -105,7 +128,7 @@ class Proxy(object):
 
     def resolve(self):
         """
-        Return a copy of the object denote by this :class:`Proxy`.
+        Return a copy of the original object wrapped by this :class:`Proxy`.
         """
         from pygas.gasnet import apply_dynamic
         data = serialize((RESOLVE, self.capsule, None, None, None))
@@ -117,13 +140,13 @@ def share(obj, from_thread=0):
     """
     Create and broadcast a :class:`Proxy` to the given object. This is a collective operation. It is effectively syntactic sugar for::
 
-    	broadcast(Proxy(obj), from_thread=from_thread)
+    	broadcast(Proxy(obj), from_thread=...)
 
     :param obj: the object to be shared.
     :type obj: object
     :param from_thread: the thread wishing to share `obj`.
     :type from_thread: int
-    :returns: A :class:`Proxy` to the given object.
+    :rtype: :class:`Proxy`
     """
     if MYTHREAD == from_thread:
     	return broadcast(Proxy(obj), from_thread=from_thread)
@@ -142,8 +165,7 @@ def barrier(bid=0, flags=gasnet.BARRIERFLAG_ANONYMOUS):
 
 def broadcast(obj, from_thread=0):
     """
-    Broadcast copies of the given object. This is a collective operation. In most cases, this is syntactic sugar for ::
-    broadcast(Proxy(obj), from_thread=from_thread)
+    Broadcast copies of the given object. This is a collective operation.
 
     :param obj: the object to be copied.
     :type obj: object

@@ -18,6 +18,7 @@ AX_GASNET
 AC_CONFIG_FILES([
     Makefile
     gasnet/Makefile
+    docs/Makefile
 ])
 
 AC_OUTPUT

@@ -9,7 +9,12 @@ Core Components
 --------------------------
 
 .. autoclass:: pygas.Proxy
-   :members:
+   :members: __init__, __getattr__, __setattr__, __call__, resolve
+
+   .. data:: owner
+
+       The id of the thread where the original object resides.
+
 
 .. autofunction:: pygas.share
 
