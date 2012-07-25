@@ -53,10 +53,11 @@ gasnet.set_apply_dynamic_handler(_apply_dynamic_handler)
 
 class Proxy(object):
     """
-    The fundamental PyGAS object, the Proxy, wraps an existing
+    This is the fundamental PyGAS object. It wraps an existing
     object and mimics its behavior, even when the original object
-    is on a remote thread. Proxy objects allow programs to query
-    the thread of the original object through the `owner` attribute.
+    is on a remote thread. UPC programmers can think of Proxies as
+    shared pointers because they store a ``(thread_id, local_addr)``
+    tuple internally.
     """
 
     def __init__(self, obj):
@@ -111,7 +112,7 @@ class Proxy(object):
 
     def __call__(self, *args, **kwargs):
         """
-        Invoke the :method:`__call__` method on the original object and
+        Invoke the `__call__` method on the original object and
         return a copy of the result.
 
         :param args: positional arguments

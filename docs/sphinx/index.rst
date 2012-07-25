@@ -24,6 +24,7 @@ To get started with PyGAS, check out the `Tutorial` and `Example Programs`.
 .. _Tutorial: tutorial
 .. _Example Programs: examples
 
+
 Contents
 ==================
 
@@ -31,9 +32,14 @@ Contents
    :maxdepth: 2
 
    intro
+   install
    tutorial
    objects
    examples
+
+
+References
+==================
 
 * :ref:`genindex`
 * :ref:`modindex`
