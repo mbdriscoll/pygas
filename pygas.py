@@ -10,7 +10,7 @@ import atexit   # for registering gasnet_exit at termination
 from cPickle import loads as deserialize
 from cPickle import dumps as serialize
 
-import pygas.gasnet as gasnet
+import gasnet
 from gasnet import apply_dynamic
 
 gasnet.init()

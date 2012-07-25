@@ -1,3 +1,5 @@
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = pygas
+python_PYTHON = pygas.py
+
+SUBDIRS = gasnet

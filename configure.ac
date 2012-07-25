@@ -6,6 +6,7 @@ AC_CONFIG_AUX_DIR([m4])
 
 AM_INIT_AUTOMAKE([1.9 no-define foreign])
 
+AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
 AC_PROG_CC
 
@@ -16,8 +17,7 @@ AX_GASNET
 
 AC_CONFIG_FILES([
     Makefile
-    pygas/Makefile
-    pygas/gasnet/Makefile
+    gasnet/Makefile
 ])
 
 AC_OUTPUT
