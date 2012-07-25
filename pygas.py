@@ -105,7 +105,6 @@ class Proxy(object):
         :type value: object
         :rtype: None
         """
-        from pygas.gasnet import apply_dynamic
         data = serialize((SETATTR, self.capsule, name, [value], None))
         result = apply_dynamic(self.owner, data)
         return deserialize(result)
@@ -121,7 +120,6 @@ class Proxy(object):
         :type args: dictionary
         :rtype: object
         """
-        from pygas.gasnet import apply_dynamic
         data = serialize((CALL, self.capsule, '__call__', args, kwargs))
         result = apply_dynamic(self.owner, data)
         return deserialize(result)
@@ -129,8 +127,9 @@ class Proxy(object):
     def resolve(self):
         """
         Return a copy of the original object wrapped by this :class:`Proxy`.
+
+        :rtype: object
         """
-        from pygas.gasnet import apply_dynamic
         data = serialize((RESOLVE, self.capsule, None, None, None))
         result = apply_dynamic(self.owner, data)
         return deserialize(result)
