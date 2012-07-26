@@ -1,0 +1,277 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pygas &mdash; PyGAS 0.95 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.95',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="PyGAS 0.95 documentation" href="../index.html" />
+    <link rel="up" title="Module code" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">PyGAS 0.95 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pygas</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Doc string.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
+
+<span class="kn">import</span> <span class="nn">timeit</span> <span class="c"># for timer context manager</span>
+<span class="kn">import</span> <span class="nn">atexit</span>   <span class="c"># for registering gasnet_exit at termination</span>
+
+<span class="kn">from</span> <span class="nn">cPickle</span> <span class="kn">import</span> <span class="n">loads</span> <span class="k">as</span> <span class="n">deserialize</span>
+<span class="kn">from</span> <span class="nn">cPickle</span> <span class="kn">import</span> <span class="n">dumps</span> <span class="k">as</span> <span class="n">serialize</span>
+
+<span class="kn">import</span> <span class="nn">gasnet</span>
+<span class="kn">from</span> <span class="nn">gasnet</span> <span class="kn">import</span> <span class="n">apply_dynamic</span>
+
+<span class="n">gasnet</span><span class="o">.</span><span class="n">init</span><span class="p">()</span>
+<span class="n">gasnet</span><span class="o">.</span><span class="n">attach</span><span class="p">()</span>
+<span class="n">gasnet</span><span class="o">.</span><span class="n">coll_init</span><span class="p">()</span>
+
+<span class="n">THREADS</span> <span class="o">=</span> <span class="n">gasnet</span><span class="o">.</span><span class="n">nodes</span><span class="p">()</span>
+<span class="n">MYTHREAD</span> <span class="o">=</span> <span class="n">gasnet</span><span class="o">.</span><span class="n">mynode</span><span class="p">()</span>
+
+<span class="n">atexit</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">gasnet</span><span class="o">.</span><span class="n">exit</span><span class="p">)</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Use enums to do dynamic dispatch inside handler. We may want to</span>
+<span class="sd">write standalone handlers for each eventually.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="n">GETATTR</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">SETATTR</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">CALL</span>    <span class="o">=</span> <span class="mi">2</span>
+<span class="n">RESOLVE</span> <span class="o">=</span> <span class="mi">3</span>
+
+<div class="viewcode-block" id="apply_dynamic_handler"><a class="viewcode-back" href="../objects.html#pygas.apply_dynamic_handler">[docs]</a><span class="k">def</span> <span class="nf">apply_dynamic_handler</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Doc string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">op</span><span class="p">,</span> <span class="n">capsule</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span> <span class="o">=</span> <span class="n">deserialize</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">obj</span> <span class="o">=</span> <span class="n">gasnet</span><span class="o">.</span><span class="n">capsule_to_obj</span><span class="p">(</span><span class="n">capsule</span><span class="p">)</span> <span class="k">if</span> <span class="n">capsule</span> <span class="k">else</span> <span class="n">__builtins__</span>
+    <span class="k">if</span> <span class="n">op</span> <span class="ow">is</span> <span class="n">GETATTR</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">op</span> <span class="ow">is</span> <span class="n">SETATTR</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">setattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">elif</span> <span class="n">op</span> <span class="ow">is</span> <span class="n">CALL</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span><span class="n">name</span><span class="p">)(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">op</span> <span class="ow">is</span> <span class="n">RESOLVE</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">obj</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s">&quot;Cannot apply op: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">op</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">serialize</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</div>
+<span class="n">gasnet</span><span class="o">.</span><span class="n">set_apply_dynamic_handler</span><span class="p">(</span><span class="n">apply_dynamic_handler</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Proxy"><a class="viewcode-back" href="../objects.html#pygas.Proxy">[docs]</a><span class="k">class</span> <span class="nc">Proxy</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+<div class="viewcode-block" id="Proxy.__init__"><a class="viewcode-back" href="../objects.html#pygas.Proxy.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">owner</span><span class="o">=</span><span class="n">MYTHREAD</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize this proxy for the given object. To avoid</span>
+<span class="sd">        conflicts with __setattr__, use the superclass&#39; version of</span>
+<span class="sd">        the method.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">object</span><span class="o">.</span><span class="n">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&quot;capsule&quot;</span><span class="p">,</span> <span class="n">gasnet</span><span class="o">.</span><span class="n">obj_to_capsule</span><span class="p">(</span><span class="n">obj</span><span class="p">))</span>
+        <span class="nb">object</span><span class="o">.</span><span class="n">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&quot;owner&quot;</span><span class="p">,</span> <span class="n">owner</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">__getstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return an object representing the state of this proxy.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">capsule</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">owner</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__setstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reconstruct the object state from the pickle representation.</span>
+<span class="sd">        STATE is a tuple of the form: (self.capsule, self.owner)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">object</span><span class="o">.</span><span class="n">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&quot;capsule&quot;</span><span class="p">,</span> <span class="n">state</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="nb">object</span><span class="o">.</span><span class="n">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&quot;owner&quot;</span><span class="p">,</span> <span class="n">state</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+<div class="viewcode-block" id="Proxy.__getattr__"><a class="viewcode-back" href="../objects.html#pygas.Proxy.__getattr__">[docs]</a>    <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a copy of a remote attribute.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c">#from time import time</span>
+        <span class="c">#times = {}</span>
+        <span class="c">#times[&#39;A&#39;] = time()</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">serialize</span><span class="p">((</span><span class="n">GETATTR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">capsule</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">))</span>
+        <span class="c">#times[&#39;B&#39;] = time()</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">apply_dynamic</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">owner</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+        <span class="c">#times[&#39;I&#39;] = time()</span>
+        <span class="n">answer</span> <span class="o">=</span> <span class="n">deserialize</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="c">#times[&#39;J&#39;] = time()</span>
+        <span class="c">#for k in times.keys():</span>
+        <span class="c">#    print &quot; %s %2.23f&quot; % (k, times[k]),</span>
+        <span class="c">#print &quot;0 %d&quot; % len(answer)</span>
+        <span class="k">return</span> <span class="n">answer</span>
+</div>
+<div class="viewcode-block" id="Proxy.__setattr__"><a class="viewcode-back" href="../objects.html#pygas.Proxy.__setattr__">[docs]</a>    <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set a remote attribute to a copy of a local object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">pygas.gasnet</span> <span class="kn">import</span> <span class="n">apply_dynamic</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">serialize</span><span class="p">((</span><span class="n">SETATTR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">capsule</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="n">value</span><span class="p">],</span> <span class="bp">None</span><span class="p">))</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">apply_dynamic</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">owner</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">deserialize</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Proxy.__call__"><a class="viewcode-back" href="../objects.html#pygas.Proxy.__call__">[docs]</a>    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">pygas.gasnet</span> <span class="kn">import</span> <span class="n">apply_dynamic</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">serialize</span><span class="p">((</span><span class="n">CALL</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">capsule</span><span class="p">,</span> <span class="s">&#39;__call__&#39;</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">))</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">apply_dynamic</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">owner</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">deserialize</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Proxy.resolve"><a class="viewcode-back" href="../objects.html#pygas.Proxy.resolve">[docs]</a>    <span class="k">def</span> <span class="nf">resolve</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a copy of a object?</span>
+<span class="sd">        Replace with proxy and move object to caller?</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">pygas.gasnet</span> <span class="kn">import</span> <span class="n">apply_dynamic</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">serialize</span><span class="p">((</span><span class="n">RESOLVE</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">capsule</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">))</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">apply_dynamic</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">owner</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">deserialize</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+</div></div>
+<div class="viewcode-block" id="share"><a class="viewcode-back" href="../objects.html#pygas.share">[docs]</a><span class="k">def</span> <span class="nf">share</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">from_thread</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Doc string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">MYTHREAD</span> <span class="o">==</span> <span class="n">from_thread</span><span class="p">:</span>
+    	<span class="k">return</span> <span class="n">broadcast</span><span class="p">(</span><span class="n">Proxy</span><span class="p">(</span><span class="n">obj</span><span class="p">),</span> <span class="n">from_thread</span><span class="o">=</span><span class="n">from_thread</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+    	<span class="k">return</span> <span class="n">broadcast</span><span class="p">(</span><span class="bp">None</span><span class="p">,</span> <span class="n">from_thread</span><span class="o">=</span><span class="n">from_thread</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="barrier"><a class="viewcode-back" href="../objects.html#pygas.barrier">[docs]</a><span class="k">def</span> <span class="nf">barrier</span><span class="p">(</span><span class="n">bid</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">gasnet</span><span class="o">.</span><span class="n">BARRIERFLAG_ANONYMOUS</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Doc string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">gasnet</span><span class="o">.</span><span class="n">barrier_notify</span><span class="p">(</span><span class="n">bid</span><span class="p">,</span> <span class="n">flags</span><span class="p">)</span>
+    <span class="n">gasnet</span><span class="o">.</span><span class="n">barrier_wait</span><span class="p">(</span><span class="n">bid</span><span class="p">,</span> <span class="n">flags</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="broadcast"><a class="viewcode-back" href="../objects.html#pygas.broadcast">[docs]</a><span class="k">def</span> <span class="nf">broadcast</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">from_thread</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Doc string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">MYTHREAD</span> <span class="o">==</span> <span class="n">from_thread</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">serialize</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">gasnet</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">from_thread</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="n">gasnet</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">from_thread</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="s">&#39;?&#39;</span><span class="o">*</span><span class="n">size</span>
+    <span class="n">gasnet</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">from_thread</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">deserialize</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="SplitTimer"><a class="viewcode-back" href="../objects.html#pygas.SplitTimer">[docs]</a><span class="k">class</span> <span class="nc">SplitTimer</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A context manager to simplify timing sections of code. Use like:</span>
+<span class="sd">        with SplitTimer(&quot;put %d bytes took&quot; % msg_size):</span>
+<span class="sd">            compute()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;timer&quot;</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s">&quot;</span><span class="si">%s</span><span class="s"> </span><span class="si">%4.20f</span><span class="s">&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Initialize this timer with a name and printing format. &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fmt</span> <span class="o">=</span> <span class="n">fmt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_timer</span> <span class="o">=</span> <span class="n">timeit</span><span class="o">.</span><span class="n">default_timer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_times</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Start timing. &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_splitstart</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timer</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Stop timing and print result. &quot;&quot;&quot;</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timer</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_times</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_splitstart</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SplitTimer.average"><a class="viewcode-back" href="../objects.html#pygas.SplitTimer.average">[docs]</a>    <span class="k">def</span> <span class="nf">average</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Average time of all splits. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_times</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_times</span><span class="p">))</span> <span class="o">*</span> <span class="mf">1e6</span>
+</div>
+<div class="viewcode-block" id="SplitTimer.report"><a class="viewcode-back" href="../objects.html#pygas.SplitTimer.report">[docs]</a>    <span class="k">def</span> <span class="nf">report</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Return report of performance. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s"> </span><span class="si">%f</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">average</span><span class="p">())</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">PyGAS 0.95 documentation</a> &raquo;</li>
+          <li><a href="index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Michael Driscoll.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>
