@@ -20,7 +20,7 @@ the build system settles.
 Installation
 **************************
 
-PyGAS uses the GNU buildchain and can be installed with::
+PyGAS uses the GNU build chain. Currently, PyGAS can be installed with::
 
   ./autogen.sh
   ./configure
