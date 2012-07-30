@@ -19,4 +19,9 @@ typedef struct msg_info {
     size_t total_bytes;
 } msg_info_t;
 
+
+/* The maximum payload per message. This is equivalent to the max
+ * Medium AM size minus the header size. */
+#define PYGAS_MAX_PAYLOAD (gasnet_AMMaxMedium()-sizeof(msg_info_t))
+
 #endif /* define _PYGAS_PYGAS_H_ */
