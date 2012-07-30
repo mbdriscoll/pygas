@@ -60,14 +60,12 @@ pygas_gasnet_apply_dynamic(PyObject *self, PyObject *args)
         request_info->fragment_num = offset / PYGAS_MAX_PAYLOAD;
         memcpy(&request[sizeof(msg_info_t)], data+offset, request_info->nbytes);
         gasnet_AMRequestMedium0(dest, APPLY_DYNAMIC_REQUEST_HIDX, &request, sizeof(msg_info_t)+request_info->nbytes);
-        //printf("request sent (%d bytes)\n", sizeof(msg_info_t)+request_info->nbytes); fflush(stdout);
     }
 
     PYGAS_GASNET_BLOCKUNTIL(reply != NULL);
 
     msg_info_t *reply_info = (msg_info_t*) &reply[0];
     PyObject *result = Py_BuildValue("s#", &reply[sizeof(msg_info_t)], reply_info->nbytes);
-    //printf("reply recv (%d bytes)\n", sizeof(msg_info_t) + reply_info->nbytes); fflush(stdout);
 
     //free(reply);
     return result;
@@ -118,7 +116,6 @@ pygas_async_request_handler(void* request) {
         reply_info->fragment_num = offset / PYGAS_MAX_PAYLOAD;
         memcpy(&reply[sizeof(msg_info_t)], data+offset, payload_bytes);
         gasnet_AMRequestMedium0(request_info->sender, APPLY_DYNAMIC_REPLY_HIDX, reply, sizeof(msg_info_t)+payload_bytes);
-        //printf("reply sent (%d bytes)\n", sizeof(msg_info_t)+payload_bytes); fflush(stdout);
     }
 
     //free(request);
@@ -133,8 +130,6 @@ pygas_apply_dynamic_request_handler(gasnet_token_t token, char* fragment, size_t
     char *msg;
     if (pygas_register_fragment(fragment, &msg))
         Py_AddPendingCall(pygas_async_request_handler, msg);
-
-    //printf("request recv (%d bytes)\n", frag_size); fflush(stdout);
 }
 
 void
