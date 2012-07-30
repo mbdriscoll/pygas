@@ -1,6 +1,8 @@
 #include "Python.h"
 #include "gasnet.h"
 
+#include "pipeline.h"
+
 /* make this code a little more UPC-like */
 #define THREADS (gasnet_nodes())
 #define MYTHREAD (gasnet_mynode())
@@ -82,6 +84,8 @@ pygas_gasnet_apply_dynamic(PyObject *self, PyObject *args)
     msg_info_t *reply_info = (msg_info_t*) &reply[0];
     PyObject *result = Py_BuildValue("s#", &reply[sizeof(msg_info_t)], reply_info->nbytes);
     printf("reply recv (%d bytes)\n", sizeof(msg_info_t) + reply_info->nbytes); fflush(stdout);
+
+    printf("FOO IS %d\n", foo());
 
     //free(reply);
     return result;
