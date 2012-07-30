@@ -1,11 +1,6 @@
-#include "Python.h"
-#include "gasnet.h"
+#include "pygas.h"
 
 #include "pipeline.h"
-
-/* make this code a little more UPC-like */
-#define THREADS (gasnet_nodes())
-#define MYTHREAD (gasnet_mynode())
 
 #define APPLY_DYNAMIC_REQUEST_HIDX 144
 #define APPLY_DYNAMIC_REPLY_HIDX   145
@@ -31,17 +26,6 @@
 /* Utility macros */
 #define max(i,j) (((i)>(j))?(i):(j))
 #define min(i,j) (((i)<(j))?(i):(j))
-
-/* This is the header for messages sent through GASNet AMs. 'nbytes'
- * should be set to the number of bytes in the message payload, which
- * is found after the header, i.e. at  &msg[sizeof(msg_info_t)]. */
-typedef struct msg_info {
-    gasnet_node_t sender;
-    size_t nbytes;
-    void *addr;
-    short fragment_num;
-    size_t total_bytes;
-} msg_info_t;
 
 static PyObject *
 pygas_gasnet_init(PyObject *self, PyObject *args)
@@ -84,8 +68,6 @@ pygas_gasnet_apply_dynamic(PyObject *self, PyObject *args)
     msg_info_t *reply_info = (msg_info_t*) &reply[0];
     PyObject *result = Py_BuildValue("s#", &reply[sizeof(msg_info_t)], reply_info->nbytes);
     printf("reply recv (%d bytes)\n", sizeof(msg_info_t) + reply_info->nbytes); fflush(stdout);
-
-    printf("FOO IS %d\n", foo());
 
     //free(reply);
     return result;
