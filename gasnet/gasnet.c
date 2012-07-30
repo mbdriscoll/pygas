@@ -55,7 +55,7 @@ pygas_gasnet_apply_dynamic(PyObject *self, PyObject *args)
     int dest = 0, nbytes = 0;
     PyArg_ParseTuple(args, "is#", &dest, &data, &nbytes);
 
-    char *reply = NULL;
+    volatile char *reply = NULL;
     char request[sizeof(msg_info_t)+nbytes];
     msg_info_t *request_info = (msg_info_t*) &request[0];
     request_info->sender = MYTHREAD;
@@ -64,10 +64,18 @@ pygas_gasnet_apply_dynamic(PyObject *self, PyObject *args)
     memcpy(&request[sizeof(msg_info_t)], data, nbytes);
 
     gasnet_AMRequestMedium0(dest, APPLY_DYNAMIC_REQUEST_HIDX, &request, sizeof(request));
+
+    if (sizeof(request) > gasnet_AMMaxMedium()) {
+        printf("engage pipelined send (%d fragments)\n", sizeof(request) / gasnet_AMMaxMedium() + 1);
+        fflush(stdout);
+    }
+
+    printf("request sent (%d bytes)\n", sizeof(request)); fflush(stdout);
     PYGAS_GASNET_BLOCKUNTIL(reply != NULL);
 
     msg_info_t *reply_info = (msg_info_t*) &reply[0];
     PyObject *result = Py_BuildValue("s#", &reply[sizeof(msg_info_t)], reply_info->nbytes);
+    printf("reply recv (%d bytes)\n", sizeof(msg_info_t) + reply_info->nbytes); fflush(stdout);
 
     //free(reply);
     return result;
@@ -114,6 +122,12 @@ pygas_async_request_handler(void* request) {
     memcpy(&reply[sizeof(msg_info_t)], data, nbytes);
 
     gasnet_AMRequestMedium0(request_info->sender, APPLY_DYNAMIC_REPLY_HIDX, &reply, sizeof(reply));
+    printf("reply sent (%d bytes)\n", sizeof(reply)); fflush(stdout);
+
+    if (sizeof(reply) > gasnet_AMMaxMedium()) {
+        printf("engage pipelined send (%d fragments)\n", sizeof(reply) / gasnet_AMMaxMedium() + 1);
+        fflush(stdout);
+    }
 
     //free(request);
     return 0;
@@ -125,6 +139,7 @@ pygas_apply_dynamic_request_handler(gasnet_token_t token, char* data, size_t nby
     char *msg = (char*) malloc(nbytes);
     memcpy(msg, data, nbytes);
     Py_AddPendingCall(pygas_async_request_handler, msg);
+    printf("request recv (%d bytes)\n", nbytes); fflush(stdout);
 }
 
 void
