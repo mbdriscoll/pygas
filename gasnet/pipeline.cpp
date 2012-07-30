@@ -48,6 +48,13 @@ public:
     bool ready() {
         return !this->fragments.any();
     }
+
+    void add_fragment(char* fragment) {
+        msg_info_t* frag_info = (msg_info_t*) fragment;
+        char* slot = this->slot_for_fragment_num(frag_info);
+        memcpy(slot, fragment+sizeof(msg_info_t), frag_info->nbytes);
+        this->fragments[frag_info->fragment_num] = 0;
+    }
 };
 
 
@@ -71,14 +78,12 @@ int pygas_register_fragment(char* fragment, char** msg)
     MsgBuf* buf;
     MsgID mid(frag_info->sender, frag_info->addr);
 
-    if (recv_buf.find(mid) == recv_buf.end()) {
+    if (recv_buf.find(mid) == recv_buf.end())
         buf = recv_buf[mid] = new MsgBuf(frag_info);
-    } else {
+    else
         buf = recv_buf[mid];
-    }
-    char* slot = buf->slot_for_fragment_num(frag_info);
-    memcpy(slot, fragment+sizeof(msg_info_t), frag_info->nbytes);
-    buf->fragments[frag_info->fragment_num] = 0;
+
+    buf->add_fragment(fragment);
 
     if (buf->ready()) {
         msg_info_t* msg_info = (msg_info_t*) buf->data;
@@ -88,9 +93,8 @@ int pygas_register_fragment(char* fragment, char** msg)
         recv_buf.erase(mid);
         *msg = buf->data;
         return 1;
-    } else {
-        return 0;
     }
 
+    return 0;
     // todo free things ?
 }
