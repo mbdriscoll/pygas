@@ -7,8 +7,7 @@
 extern "C" {
 #endif
 
-int pygas_register_fragment(msg_info_t* msg_info, char* fragment,
-        char** msg, int* nbytes);
+int pygas_register_fragment( char* fragment, char** msg);
 
 #ifdef __cplusplus
 } // extern "C"

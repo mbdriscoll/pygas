@@ -98,6 +98,7 @@ set_apply_dynamic_handler(PyObject *dummy, PyObject *args)
 
 int
 pygas_async_request_handler(void* request) {
+    printf("async\n"); fflush(stdout);
     msg_info_t* request_info = (msg_info_t*) request;
 
     PyObject *result = PyObject_CallFunction(apply_dynamic_handler, "(s#)", (char*) request+sizeof(msg_info_t), request_info->nbytes);
@@ -124,23 +125,28 @@ pygas_async_request_handler(void* request) {
 }
 
 void
-pygas_apply_dynamic_request_handler(gasnet_token_t token, char* data, size_t nbytes)
+pygas_apply_dynamic_request_handler(gasnet_token_t token, char* fragment, size_t frag_size)
 {
-    char *msg = (char*) malloc(nbytes);
-    memcpy(msg, data, nbytes);
-    Py_AddPendingCall(pygas_async_request_handler, msg);
-    printf("request recv (%d bytes)\n", nbytes); fflush(stdout);
+    assert(frag_size == sizeof(msg_info_t)+((msg_info_t*)&fragment[0])->nbytes);
+
+    char *msg;
+    if (pygas_register_fragment(fragment, &msg))
+        Py_AddPendingCall(pygas_async_request_handler, msg);
+
+    printf("request recv (%d bytes)\n", frag_size); fflush(stdout);
 }
 
 void
-pygas_apply_dynamic_reply_handler(gasnet_token_t token, void* data, size_t nbytes)
+pygas_apply_dynamic_reply_handler(gasnet_token_t token, void* fragment, size_t frag_size)
 {
-    char *reply = (char*) malloc(nbytes);
-    memcpy(reply, data, nbytes);
+    assert(frag_size == sizeof(msg_info_t)+((msg_info_t*)&fragment[0])->nbytes);
 
-    // write val to end PYGAS_GASNET_BLOCKUNTIL
-    msg_info_t* reply_info = (msg_info_t*) &reply[0];
-    *((char**) reply_info->addr) = reply;
+    char *msg;
+    if (pygas_register_fragment(fragment, &msg)) {
+        msg_info_t* msg_info = (msg_info_t*) &msg[0];
+        // write val to end PYGAS_GASNET_BLOCKUNTIL
+        *((char**) msg_info->addr) = msg;
+    }
 }
 
 gasnet_handlerentry_t handler_table[] = {
