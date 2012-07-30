@@ -26,6 +26,10 @@
         Py_MakePendingCalls(); \
     }
 
+/* Utility macros */
+#define max(i,j) (((i)>(j))?(i):(j))
+#define min(i,j) (((i)<(j))?(i):(j))
+
 /* This is the header for messages sent through GASNet AMs. 'nbytes'
  * should be set to the number of bytes in the message payload, which
  * is found after the header, i.e. at  &msg[sizeof(msg_info_t)]. */
@@ -33,6 +37,8 @@ typedef struct msg_info {
     gasnet_node_t sender;
     size_t nbytes;
     void *addr;
+    short fragment_num;
+    size_t total_bytes;
 } msg_info_t;
 
 static PyObject *
@@ -48,29 +54,29 @@ pygas_gasnet_init(PyObject *self, PyObject *args)
     return Py_BuildValue("i", status);
 }
 
+#define PYGAS_MAX_PAYLOAD (gasnet_AMMaxMedium()-sizeof(msg_info_t))
+
 static PyObject *
 pygas_gasnet_apply_dynamic(PyObject *self, PyObject *args)
 {
     char *data;
-    int dest = 0, nbytes = 0;
-    PyArg_ParseTuple(args, "is#", &dest, &data, &nbytes);
+    int dest = 0, total_bytes = 0;
+    PyArg_ParseTuple(args, "is#", &dest, &data, &total_bytes);
 
     volatile char *reply = NULL;
-    char request[sizeof(msg_info_t)+nbytes];
+    char request[min(gasnet_AMMaxMedium(), sizeof(msg_info_t)+total_bytes)];
     msg_info_t *request_info = (msg_info_t*) &request[0];
     request_info->sender = MYTHREAD;
-    request_info->nbytes = nbytes;
     request_info->addr = (void*) &reply;
-    memcpy(&request[sizeof(msg_info_t)], data, nbytes);
 
-    gasnet_AMRequestMedium0(dest, APPLY_DYNAMIC_REQUEST_HIDX, &request, sizeof(request));
-
-    if (sizeof(request) > gasnet_AMMaxMedium()) {
-        printf("engage pipelined send (%d fragments)\n", sizeof(request) / gasnet_AMMaxMedium() + 1);
-        fflush(stdout);
+    int offset;
+    for(offset = 0; offset < total_bytes; offset += PYGAS_MAX_PAYLOAD) {
+        request_info->nbytes = min(total_bytes-offset, PYGAS_MAX_PAYLOAD);
+        memcpy(&request[sizeof(msg_info_t)], data+offset, request_info->nbytes);
+        gasnet_AMRequestMedium0(dest, APPLY_DYNAMIC_REQUEST_HIDX, &request, sizeof(msg_info_t)+request_info->nbytes);
+        printf("request sent (%d bytes)\n", sizeof(msg_info_t)+request_info->nbytes); fflush(stdout);
     }
 
-    printf("request sent (%d bytes)\n", sizeof(request)); fflush(stdout);
     PYGAS_GASNET_BLOCKUNTIL(reply != NULL);
 
     msg_info_t *reply_info = (msg_info_t*) &reply[0];
@@ -111,22 +117,20 @@ pygas_async_request_handler(void* request) {
     PyObject *result = PyObject_CallFunction(apply_dynamic_handler, "(s#)", (char*) request+sizeof(msg_info_t), request_info->nbytes);
     assert(PyString_Check(result));
 
-    Py_ssize_t nbytes;
+    Py_ssize_t total_bytes;
     char *data;
-    PyString_AsStringAndSize(result, &data, &nbytes);
-    char reply[sizeof(msg_info_t)+nbytes];
+    PyString_AsStringAndSize(result, &data, &total_bytes);
+    char reply[min(gasnet_AMMaxMedium(), sizeof(msg_info_t)+total_bytes)];
     msg_info_t *reply_info = (msg_info_t*) &reply[0];
     reply_info->sender = MYTHREAD;
-    reply_info->nbytes = nbytes;
     reply_info->addr = request_info->addr;
-    memcpy(&reply[sizeof(msg_info_t)], data, nbytes);
 
-    gasnet_AMRequestMedium0(request_info->sender, APPLY_DYNAMIC_REPLY_HIDX, &reply, sizeof(reply));
-    printf("reply sent (%d bytes)\n", sizeof(reply)); fflush(stdout);
-
-    if (sizeof(reply) > gasnet_AMMaxMedium()) {
-        printf("engage pipelined send (%d fragments)\n", sizeof(reply) / gasnet_AMMaxMedium() + 1);
-        fflush(stdout);
+    int offset;
+    for(offset = 0; offset < total_bytes; offset += PYGAS_MAX_PAYLOAD) {
+        int payload_bytes = reply_info->nbytes = min(total_bytes-offset, PYGAS_MAX_PAYLOAD);
+        memcpy(&reply[sizeof(msg_info_t)], data+offset, payload_bytes);
+        gasnet_AMRequestMedium0(request_info->sender, APPLY_DYNAMIC_REPLY_HIDX, reply, sizeof(msg_info_t)+payload_bytes);
+        printf("reply sent (%d bytes)\n", sizeof(msg_info_t)+payload_bytes); fflush(stdout);
     }
 
     //free(request);
