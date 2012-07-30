@@ -26,11 +26,6 @@
         Py_MakePendingCalls(); \
     }
 
-#define PRINTTIME(LETTER) {                             \
-    struct timeval t;                                   \
-    if (gettimeofday(&t,(struct timezone *)NULL) == 0)  \
-       printf(" %c %2.23f ", LETTER, t.tv_sec + t.tv_usec*0.000001); }
-
 /* This is the header for messages sent through GASNet AMs. 'nbytes'
  * should be set to the number of bytes in the message payload, which
  * is found after the header, i.e. at  &msg[sizeof(msg_info_t)]. */
@@ -75,7 +70,6 @@ pygas_gasnet_apply_dynamic(PyObject *self, PyObject *args)
     PyObject *result = Py_BuildValue("s#", &reply[sizeof(msg_info_t)], reply_info->nbytes);
 
     //free(reply);
-    //PRINTTIME('H');
     return result;
 }
 
@@ -104,13 +98,10 @@ set_apply_dynamic_handler(PyObject *dummy, PyObject *args)
 
 int
 pygas_async_request_handler(void* request) {
-    //PRINTTIME('D');
     msg_info_t* request_info = (msg_info_t*) request;
 
     PyObject *result = PyObject_CallFunction(apply_dynamic_handler, "(s#)", (char*) request+sizeof(msg_info_t), request_info->nbytes);
     assert(PyString_Check(result));
-
-    //PRINTTIME('E');
 
     Py_ssize_t nbytes;
     char *data;
@@ -125,7 +116,6 @@ pygas_async_request_handler(void* request) {
     gasnet_AMRequestMedium0(request_info->sender, APPLY_DYNAMIC_REPLY_HIDX, &reply, sizeof(reply));
 
     //free(request);
-    //PRINTTIME('F'); printf("\n");
     return 0;
 }
 
@@ -135,14 +125,11 @@ pygas_apply_dynamic_request_handler(gasnet_token_t token, char* data, size_t nby
     char *msg = (char*) malloc(nbytes);
     memcpy(msg, data, nbytes);
     Py_AddPendingCall(pygas_async_request_handler, msg);
-
-    //PRINTTIME('C');
 }
 
 void
 pygas_apply_dynamic_reply_handler(gasnet_token_t token, void* data, size_t nbytes)
 {
-    //PRINTTIME('G');
     char *reply = (char*) malloc(nbytes);
     memcpy(reply, data, nbytes);
 
