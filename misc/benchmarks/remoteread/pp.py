@@ -7,7 +7,6 @@ import numpy as np
 
 NUM_TRIALS = 1
 
-print "AMMAxMedium is %d" % gasnet.AMMaxMedium()
 
 class ObjectManager(object):
     def __init__(self, size):
@@ -36,9 +35,8 @@ def main():
     (options, args) = parser.parse_args()
 
     if MYTHREAD == 0:
-        print "#size\tavg_time_us\tstddev_times\tavg_rates_gbs\tstdev_rates"
-    else:
-        print "Thread %d working" % MYTHREAD
+        print "# AMMAxMedium is %d" % gasnet.AMMaxMedium()
+        print "# size\tavg_time_us\tstddev_times\tavg_rates_gbs\tstdev_rates"
 
     for size in [2**i for i in range(options.min_exp, options.max_exp)]:
         gbits = size * 8e-9

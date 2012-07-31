@@ -55,10 +55,19 @@ public:
         memcpy(slot, fragment+sizeof(msg_info_t), frag_info->nbytes);
         this->fragments[frag_info->fragment_num] = 0;
     }
+
+    char* prepare_msg(msg_info_t* frag_info) {
+        msg_info_t* msg_info = (msg_info_t*) this->data;
+        memcpy(msg_info, frag_info, sizeof(msg_info_t));
+        msg_info->nbytes = frag_info->total_bytes;
+        msg_info->fragment_num = 0;
+        return this->data;
+    }
 };
 
 
 map<MsgID,MsgBuf*> recv_buf;
+gasnet_hsl_t recv_buf_lock = GASNET_HSL_INITIALIZER;
 
 /* Register a fragment of a message. If all fragments are in place,
  * return 1 and populate MSG with the message address and size in
@@ -78,23 +87,23 @@ int pygas_register_fragment(char* fragment, char** msg)
     MsgBuf* buf;
     MsgID mid(frag_info->sender, frag_info->addr);
 
-    if (recv_buf.find(mid) == recv_buf.end())
-        buf = recv_buf[mid] = new MsgBuf(frag_info);
-    else
-        buf = recv_buf[mid];
+    int ready = 0;
+    gasnet_hsl_lock(&recv_buf_lock);
+    {
+        if (recv_buf.find(mid) == recv_buf.end())
+            buf = recv_buf[mid] = new MsgBuf(frag_info);
+        else
+            buf = recv_buf[mid];
 
-    buf->add_fragment(fragment);
+        buf->add_fragment(fragment);
 
-    if (buf->ready()) {
-        msg_info_t* msg_info = (msg_info_t*) buf->data;
-        memcpy(msg_info, frag_info, sizeof(msg_info_t));
-        msg_info->nbytes = frag_info->total_bytes;
-        msg_info->fragment_num = 0;
-        recv_buf.erase(mid);
-        *msg = buf->data;
-        return 1;
+        if ((ready = buf->ready())) {
+            *msg = buf->prepare_msg(frag_info);
+            recv_buf.erase(mid);
+            delete buf;
+        }
     }
+    gasnet_hsl_unlock(&recv_buf_lock);
 
-    return 0;
-    // todo free things ?
+    return ready;
 }
