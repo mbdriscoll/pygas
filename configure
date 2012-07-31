@@ -16271,6 +16271,10 @@ if test "x$want_gasnet" = "xyes"; then
     CPPFLAGS="$CPPFLAGS -DGASNET_PAR"
     LDFLAGS="$LDFLAGS -L$GASNET_LIBRARY_DIR"
 
+    if test "x$ac_gasnet_conduit" = "xibv"; then
+        CPPFLAGS="$CPPFLAGS -DGASNET_CONDUIT_IBV"
+    fi
+
     ac_fn_c_check_header_mongrel "$LINENO" "gasnet.h" "ac_cv_header_gasnet_h" "$ac_includes_default"
 if test "x$ac_cv_header_gasnet_h" = xyes; then :
 
