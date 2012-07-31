@@ -69,6 +69,10 @@ if test "x$want_gasnet" = "xyes"; then
     CPPFLAGS="$CPPFLAGS -DGASNET_PAR"
     LDFLAGS="$LDFLAGS -L$GASNET_LIBRARY_DIR"
 
+    if test "x$ac_gasnet_conduit" = "xibv"; then
+        CPPFLAGS="$CPPFLAGS -DGASNET_CONDUIT_IBV"
+    fi
+    
     AC_CHECK_HEADER([gasnet.h], [], AC_MSG_ERROR([Cannot find GASNet headers.]))
 
     dnl AC_SEARCH_LIBS([gasnetc_attach], [$GASNET_LIBRARY_BASENAME],
