@@ -32,9 +32,9 @@ public:
     bitset<1024> fragments;
 
     MsgBuf(msg_info_t* info) {
-        this->data = (char *) malloc(info->total_bytes + sizeof(msg_info_t));
+        this->data = (char *) malloc(info->total_payload_bytes + sizeof(msg_info_t));
 
-        int num_fragments = info->total_bytes / PYGAS_MAX_PAYLOAD + 1;
+        int num_fragments = info->total_payload_bytes / PYGAS_MAX_PAYLOAD + 1;
         for(int i = 0; i < num_fragments; i++)
             this->fragments[i] = 1;
     }
@@ -59,7 +59,7 @@ public:
     char* prepare_msg(msg_info_t* frag_info) {
         msg_info_t* msg_info = (msg_info_t*) this->data;
         memcpy(msg_info, frag_info, sizeof(msg_info_t));
-        msg_info->nbytes = frag_info->total_bytes;
+        msg_info->nbytes = frag_info->total_payload_bytes;
         msg_info->fragment_num = 0;
         return this->data;
     }
@@ -77,7 +77,7 @@ int pygas_register_fragment(char* fragment, char** msg)
     msg_info_t* frag_info = (msg_info_t*) &fragment[0];
 
     // skip pipelining for small messages
-    if (frag_info->nbytes == frag_info->total_bytes) {
+    if (frag_info->nbytes == frag_info->total_payload_bytes) {
         int frag_size = frag_info->nbytes + sizeof(msg_info_t);
         *msg = (char*) malloc(frag_size);
         memcpy(*msg, fragment, frag_size);

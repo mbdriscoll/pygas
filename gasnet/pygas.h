@@ -16,7 +16,7 @@ typedef struct msg_info {
     size_t nbytes;
     void *addr;
     short fragment_num;
-    size_t total_bytes;
+    size_t total_payload_bytes;
 } msg_info_t;
 
 
