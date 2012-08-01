@@ -24,4 +24,25 @@ typedef struct msg_info {
  * Medium AM size minus the header size. */
 #define PYGAS_MAX_PAYLOAD (gasnet_AMMaxMedium()-sizeof(msg_info_t))
 
+
+/* Active message handler id's. */
+#define APPLY_DYNAMIC_REQUEST_HIDX 144
+#define APPLY_DYNAMIC_REPLY_HIDX   145
+#define RMALLOC_REQUEST_HIDX       146
+#define RMALLOC_REPLY_HIDX         147
+
+/* Redefine BLOCKUNTIL macro to include calls to Py_MakePendingCalls
+ * so interpreter can make progress when blocked. */
+// TODO check implications of this with gasnet team
+#define PYGAS_GASNET_BLOCKUNTIL(cond) \
+    while (!(cond)) {             \
+        gasnet_AMPoll();          \
+	    Py_MakePendingCalls();    \
+    }
+
+/* Controls how big messages are handled. */
+// TODO autotune to find optimal threshold.
+#define PYGAS_BIGMSG_PIPELINE 1
+#define PYGAS_BIGMSG_RMALLOC (!(PYGAS_BIGMSG_PIPELINE))
+
 #endif /* define _PYGAS_PYGAS_H_ */

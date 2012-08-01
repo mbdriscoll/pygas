@@ -1,17 +1,7 @@
 #include "pygas.h"
 
 #include "pipeline.h"
-
-#define APPLY_DYNAMIC_REQUEST_HIDX 144
-#define APPLY_DYNAMIC_REPLY_HIDX   145
-// adding new hidx? be sure to update gasnet_handerentry_t count
-
-// TODO check implications of this with gasnet team
-#define PYGAS_GASNET_BLOCKUNTIL(cond) \
-    while (!(cond)) {             \
-        gasnet_AMPoll();          \
-	    Py_MakePendingCalls();    \
-    }
+#include "rmalloc.h"
 
 /* Reimplementation of gasnet_barrier_wait that allows pending
  * Python calls created by incoming AMs to be serviced by the
@@ -47,24 +37,38 @@ pygas_gasnet_apply_dynamic(PyObject *self, PyObject *args)
     int dest = 0, total_bytes = 0;
     PyArg_ParseTuple(args, "is#", &dest, &data, &total_bytes);
 
-    volatile char *reply = NULL;
-    char request[min(gasnet_AMMaxMedium(), sizeof(msg_info_t)+total_bytes)];
-    msg_info_t *request_info = (msg_info_t*) &request[0];
-    request_info->sender = MYTHREAD;
-    request_info->addr = (void*) &reply;
-    request_info->total_bytes = total_bytes;
+    volatile char* reply = NULL;
+    if (PYGAS_BIGMSG_PIPELINE) {
+        char request[min(gasnet_AMMaxMedium(), sizeof(msg_info_t)+total_bytes)];
+        msg_info_t *request_info = (msg_info_t*) &request[0];
+        request_info->sender = MYTHREAD;
+        request_info->addr = (void*) &reply;
+        request_info->total_bytes = total_bytes;
 
-    int offset;
-    for(offset = 0; offset < total_bytes; offset += PYGAS_MAX_PAYLOAD) {
-        request_info->nbytes = min(total_bytes-offset, PYGAS_MAX_PAYLOAD);
-        request_info->fragment_num = offset / PYGAS_MAX_PAYLOAD;
-        memcpy(&request[sizeof(msg_info_t)], data+offset, request_info->nbytes);
-        gasnet_AMRequestMedium0(dest, APPLY_DYNAMIC_REQUEST_HIDX, &request, sizeof(msg_info_t)+request_info->nbytes);
+        int offset;
+        for(offset = 0; offset < total_bytes; offset += PYGAS_MAX_PAYLOAD) {
+            request_info->nbytes = min(total_bytes-offset, PYGAS_MAX_PAYLOAD);
+            request_info->fragment_num = offset / PYGAS_MAX_PAYLOAD;
+            memcpy(&request[sizeof(msg_info_t)], data+offset, request_info->nbytes);
+            gasnet_AMRequestMedium0(dest, APPLY_DYNAMIC_REQUEST_HIDX, &request,
+                    sizeof(msg_info_t)+request_info->nbytes);
+        }
+    } else /* PYGAS_BIGMSG_RMALLOC */ {
+        char request[sizeof(msg_info_t)+total_bytes];
+        msg_info_t *request_info = (msg_info_t*) &request[0];
+        request_info->sender = MYTHREAD;
+        request_info->addr = (void*) &reply;
+        request_info->total_bytes = total_bytes;
+        request_info->nbytes = total_bytes;
+        request_info->fragment_num = 0;
+
+        void* raddr = rmalloc(dest, total_bytes);
+        gasnet_AMRequestLong(dest, APPLY_DYNAMIC_REQUEST_HIDX, &request, total_bytes, raddr);
     }
 
     PYGAS_GASNET_BLOCKUNTIL(reply != NULL);
 
-    msg_info_t *reply_info = (msg_info_t*) &reply[0];
+    msg_info_t* reply_info = (msg_info_t*) &reply[0];
     PyObject *result = Py_BuildValue("s#", &reply[sizeof(msg_info_t)], reply_info->nbytes);
 
     //free(reply);
@@ -147,13 +151,16 @@ pygas_apply_dynamic_reply_handler(gasnet_token_t token, void* fragment, size_t f
 
 gasnet_handlerentry_t handler_table[] = {
     {APPLY_DYNAMIC_REQUEST_HIDX,   pygas_apply_dynamic_request_handler},
-    {APPLY_DYNAMIC_REPLY_HIDX,     pygas_apply_dynamic_reply_handler}
+    {APPLY_DYNAMIC_REPLY_HIDX,     pygas_apply_dynamic_reply_handler},
+    {RMALLOC_REQUEST_HIDX,         pygas_rmalloc_request_handler},
+    {RMALLOC_REPLY_HIDX,           pygas_rmalloc_reply_handler}
 };
 
 static PyObject *
 pygas_gasnet_attach(PyObject *self, PyObject *args)
 {
-    int status = gasnet_attach(handler_table, 2, gasnet_getMaxLocalSegmentSize(), GASNET_PAGESIZE);
+    int num_entries = sizeof(handler_table)/sizeof(gasnet_handlerentry_t);
+    int status = gasnet_attach(handler_table, num_entries, gasnet_getMaxLocalSegmentSize(), GASNET_PAGESIZE);
 
     return Py_BuildValue("i", status);
 }
