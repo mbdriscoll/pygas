@@ -1,9 +1,10 @@
-#include "pygas.h"
 #include "pipeline.h"
 
 #include <cstring> /* for memcpy */
 #include <map> /* for map */
 #include <bitset> /* for bitset */
+
+#include "rpc.h"
 
 using namespace std;
 

@@ -8,23 +8,6 @@
 #define THREADS (gasnet_nodes())
 #define MYTHREAD (gasnet_mynode())
 
-/* This is the header for messages sent through GASNet AMs. 'nbytes'
- * should be set to the number of bytes in the message payload, which
- * is found after the header, i.e. at  &msg[sizeof(msg_info_t)]. */
-typedef struct msg_info {
-    gasnet_node_t sender;
-    size_t nbytes;
-    void *addr;
-    short fragment_num;
-    size_t total_payload_bytes;
-} msg_info_t;
-
-
-/* The maximum payload per message. This is equivalent to the max
- * Medium AM size minus the header size. */
-#define PYGAS_MAX_PAYLOAD (gasnet_AMMaxMedium()-sizeof(msg_info_t))
-
-
 /* Active message handler id's. */
 #define APPLY_DYNAMIC_REQUEST_HIDX 144
 #define APPLY_DYNAMIC_REPLY_HIDX   145

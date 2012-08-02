@@ -1,5 +1,6 @@
 #include "pygas.h"
 
+#include "rpc.h"
 #include "pipeline.h"
 #include "rmalloc.h"
 
