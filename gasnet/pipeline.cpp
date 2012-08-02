@@ -40,6 +40,8 @@ public:
             this->fragments[i] = 1;
     }
 
+    ~MsgBuf() {}
+
     char* slot_for_fragment_num(msg_info_t* frag_info) {
         return this->data +
                sizeof(msg_info_t) +

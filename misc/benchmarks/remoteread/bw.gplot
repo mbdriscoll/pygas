@@ -1,5 +1,4 @@
 set term png
-set output "bandwidth_all.png"
 
 set title "Bandwidth for Synchronous Remote Reads"
 set xlabel "Message size (bytes)"
@@ -13,8 +12,31 @@ set style line 1 lw 1
 set style line 2 lw 1
 set style line 3 lw 1
 set style line 4 lw 1
+set style line 5 lw 1
 
-plot \
+set arrow 1 from 4096,0 to 4096,3 nohead ls 5
+set label 1 "AMMaxMedium" at 4096,2.8 center
+
+set output "bandwidth_py.png"
+
+
+plot [:2097152][:] \
+'mpi.fast.out' using 1:4 ls 3 t "MPI (fast)" w lines, \
+'mpi.fast.out' using 1:4:5 ls 3 notitle w errorbars, \
+'py.out' using 1:4 ls 1 t "PyGAS" w lines, \
+'py.out' using 1:4:5 ls 1 notitle w errorbars, \
+'mpi.slow.out' using 1:4 ls 4 t "MPI (slow)" w lines, \
+'mpi.slow.out' using 1:4:5 ls 4 notitle w errorbars
+
+unset arrow 1
+unset label 1
+
+set output "bandwidth_all.png"
+
+set arrow from 4096,0 to 4096,32 nohead ls 5
+set label "AMMaxMedium" at 4096,28 center
+
+plot [:2097152][:] \
 32 t "Peak" w lines, \
 'upc.out' using 1:4 ls 2 t "UPC" w lines, \
 'upc.out' using 1:4:5 ls 2 notitle w errorbars, \
@@ -24,4 +46,5 @@ plot \
 'py.out' using 1:4:5 ls 1 notitle w errorbars, \
 'mpi.slow.out' using 1:4 ls 4 t "MPI (slow)" w lines, \
 'mpi.slow.out' using 1:4:5 ls 4 notitle w errorbars
+
 

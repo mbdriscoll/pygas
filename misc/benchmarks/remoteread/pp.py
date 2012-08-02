@@ -5,7 +5,7 @@ from time import time
 from sys import stdout
 import numpy as np
 
-NUM_TRIALS = 10
+NUM_TRIALS = 100
 
 class ObjectManager(object):
     def __init__(self, size):

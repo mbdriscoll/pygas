@@ -24,3 +24,7 @@ config.status
 libtool
 .deps
 .libs
+
+# Mac stuff
+.DS_Store
+._.DS_Store

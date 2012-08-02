@@ -22,7 +22,7 @@ upc.out: pp
 
 pp: pp.upc
 	@echo Compiling UPC benchmark
-	$(UPCC) -O -network=mpi -o $@ $^
+	$(UPCC) -O -o $@ $^
 
 .PHONY: clean
 
