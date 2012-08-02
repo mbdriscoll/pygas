@@ -40,6 +40,20 @@ typedef struct msg_info {
 	    Py_MakePendingCalls();    \
     }
 
+/* Reimplementation of gasnet_barrier_wait that allows pending
+ * Python calls created by incoming AMs to be serviced by the
+ * interpreter while waiting.
+ * XXX: spins. check with gasnet team for advice here.
+ * TODO: support for other gasnet_barrier_try return codes. */
+#define PYGAS_GASNET_BARRIER_WAIT(id, flags) \
+    while (gasnet_barrier_try((id), (flags)) != GASNET_OK) { \
+        Py_MakePendingCalls(); \
+    }
+
+/* Useful macros */
+#define max(i,j) (((i)>(j))?(i):(j))
+#define min(i,j) (((i)<(j))?(i):(j))
+
 /* Controls how big messages are handled. */
 // TODO autotune to find optimal threshold.
 #define PYGAS_BIGMSG_PIPELINE 1
