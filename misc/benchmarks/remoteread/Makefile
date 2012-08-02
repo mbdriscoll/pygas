@@ -8,7 +8,7 @@ PYTHONPATH=../../..
 
 default: all
 
-all: py.out upc.out graph.png
+all: graph.png
 
 graph.png: py.out upc.out
 	$(GNUPLOT) -persist pp.gplot

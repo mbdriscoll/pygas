@@ -5,8 +5,7 @@ from time import time
 from sys import stdout
 import numpy as np
 
-NUM_TRIALS = 1
-
+NUM_TRIALS = 10
 
 class ObjectManager(object):
     def __init__(self, size):
@@ -35,7 +34,6 @@ def main():
     (options, args) = parser.parse_args()
 
     if MYTHREAD == 0:
-        print "# AMMAxMedium is %d" % gasnet.AMMaxMedium()
         print "# size\tavg_time_us\tstddev_times\tavg_rates_gbs\tstdev_rates"
 
     for size in [2**i for i in range(options.min_exp, options.max_exp)]:

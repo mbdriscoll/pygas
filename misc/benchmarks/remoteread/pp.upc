@@ -35,6 +35,7 @@ double average(double a[], int n) {
 int main(int argc, char **argv) {
      assert(THREADS == 2);
      shared char *buf = upc_all_alloc(2*MAXBYTES, 1);
+     upc_memset(&buf[MYTHREAD], 'c', MAXBYTES);
 
      double times[NUMTRIALS];
 
@@ -51,10 +52,9 @@ int main(int argc, char **argv) {
              struct timeval t_start, t_end;
              assert(upc_threadof(&buf[1]) == 1);
              for(int trial = 0; trial < NUMTRIALS; trial++) {
-                 memset(msg, 'c', msg_size);
                  gettimeofday(&t_start,(struct timezone *)NULL);
                  {
-                     upc_memput(&buf[1], msg, msg_size);
+                     upc_memget(msg, &buf[1], msg_size);
                  }
                  gettimeofday(&t_end,(struct timezone *)NULL);
                  times[trial] = 1e6 * (double) (t_end.tv_sec  - t_start.tv_sec) +
