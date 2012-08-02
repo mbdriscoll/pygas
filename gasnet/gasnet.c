@@ -57,15 +57,16 @@ pygas_gasnet_apply_dynamic(PyObject *self, PyObject *args)
     } else /* PYGAS_BIGMSG_RMALLOC */ {
         size_t total_bytes = sizeof(msg_info_t) + total_payload_bytes;
         char request[total_bytes];
-        msg_info_t *request_info = (msg_info_t*) &request[0];
+        msg_info_t *request_info = (msg_info_t*) request;
         request_info->sender = MYTHREAD;
         request_info->addr = (void*) &reply;
         request_info->total_payload_bytes = total_payload_bytes;
         request_info->nbytes = total_payload_bytes;
         request_info->fragment_num = 0;
+        memcpy(request+sizeof(msg_info_t), data, total_payload_bytes);
 
         void* raddr = rmalloc(dest, total_bytes);
-        gasnet_AMRequestLong0(dest, APPLY_DYNAMIC_REQUEST_HIDX, &request, total_bytes, raddr);
+        gasnet_AMRequestLong0(dest, APPLY_DYNAMIC_REQUEST_HIDX, request, total_bytes, raddr);
     }
 
     PYGAS_GASNET_BLOCKUNTIL(reply != NULL);
@@ -103,6 +104,7 @@ set_apply_dynamic_handler(PyObject *dummy, PyObject *args)
 int
 pygas_async_request_handler(void* request) {
     msg_info_t* request_info = (msg_info_t*) request;
+    gasnet_node_t dest = request_info->sender;
 
     PyObject *result = PyObject_CallFunction(apply_dynamic_handler, "(s#)", (char*) request+sizeof(msg_info_t), request_info->nbytes);
     assert(PyString_Check(result));
@@ -122,22 +124,21 @@ pygas_async_request_handler(void* request) {
             int frag_payload_bytes = reply_info->nbytes = min(total_payload_bytes-offset, PYGAS_MAX_PAYLOAD);
             reply_info->fragment_num = offset / PYGAS_MAX_PAYLOAD;
             memcpy(&reply[sizeof(msg_info_t)], data+offset, frag_payload_bytes);
-            gasnet_AMRequestMedium0(request_info->sender, APPLY_DYNAMIC_REPLY_HIDX, reply, sizeof(msg_info_t)+frag_payload_bytes);
+            gasnet_AMRequestMedium0(dest, APPLY_DYNAMIC_REPLY_HIDX, reply, sizeof(msg_info_t)+frag_payload_bytes);
         }
     } else /* PYGAS_BIGMSG_RMALLOC */ {
         size_t total_bytes = sizeof(msg_info_t) + total_payload_bytes;
         char reply[total_bytes];
-        msg_info_t *reply_info = (msg_info_t*) &reply[0];
+        msg_info_t *reply_info = (msg_info_t*) reply;
         reply_info->sender = MYTHREAD;
         reply_info->addr = request_info->addr;
         reply_info->total_payload_bytes = total_payload_bytes;
         reply_info->fragment_num = 0;
         reply_info->nbytes = total_payload_bytes;
-        memcpy(&reply[sizeof(msg_info_t)], data, total_payload_bytes);
+        memcpy(reply+sizeof(msg_info_t), data, total_payload_bytes);
 
-        gasnet_node_t dest = request_info->sender;
         void* raddr = rmalloc(dest, total_bytes);
-        gasnet_AMRequestLong0(dest, APPLY_DYNAMIC_REPLY_HIDX, &reply, total_bytes, raddr);
+        gasnet_AMRequestLong0(dest, APPLY_DYNAMIC_REPLY_HIDX, reply, total_bytes, raddr);
     }
 
     //free(request);
