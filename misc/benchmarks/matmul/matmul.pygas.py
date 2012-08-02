@@ -25,14 +25,14 @@ def coords_to_tid(i,j):
 def tid_to_coords(tid):
     return tid // sqrt_P, tid % sqrt_P
 i,j = tid_to_coords(MYTHREAD)
-    
+
 def matmul_cannon():
     A_ij = A_directory[i][j].data
     start_time = time()
     C_ij = np.zeros(A_ij.shape)
     for k in range(sqrt_P):
-        A_ij = A_directory[i][k+i%sqrt_P].data
-        B_ij = B_directory[k+i%sqrt_P][j].data
+        A_ij = A_directory[i][k].data
+        B_ij = B_directory[k][j].data
         C_ij += A_ij.dot(B_ij)
     end_time = time()
     running_time = end_time - start_time
@@ -46,17 +46,15 @@ def main():
 
     n = options.n
     c = options.c
-    P = THREADS 
+    P = THREADS
 
     assert P % c == 0, "P must be divisible by c"
     assert n % sqrt_P == 0, "n must be divisible by sqrt(P)"
     blk_size = n / math.sqrt(P/c)
 
-    #A_ij = np.random.rand(blk_size, blk_size)
-    #B_ij = np.random.rand(blk_size, blk_size)
+    A_ij = np.random.rand(blk_size, blk_size)
+    B_ij = np.random.rand(blk_size, blk_size)
     global i,j
-    A_ij = np.eye(blk_size) if i == j else np.zeros((blk_size, blk_size))
-    B_ij = np.eye(blk_size) if i == j else np.zeros((blk_size, blk_size))
 
     global A_directory, B_directory
     dm_a = DataManager(A_ij)
@@ -67,7 +65,6 @@ def main():
     cannon_C_ij, running_time = matmul_cannon()
     if MYTHREAD == 0:
         print "Cannon ran at %f GFlop/s" % (1.e-9 * n**3 / running_time)
-    print cannon_C_ij
 
 if __name__ == "__main__":
     main()
