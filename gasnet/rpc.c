@@ -1,13 +1,13 @@
 #include "rpc.h"
 
-static PyObject *apply_dynamic_handler = NULL;
+static PyObject *rpc_handler = NULL;
 
 int
 pygas_async_request_handler(void* request) {
     msg_info_t* request_info = (msg_info_t*) request;
     gasnet_node_t dest = request_info->sender;
 
-    PyObject *result = PyObject_CallFunction(apply_dynamic_handler, "(s#)", (char*) request+sizeof(msg_info_t), request_info->nbytes);
+    PyObject *result = PyObject_CallFunction(rpc_handler, "(s#)", (char*) request+sizeof(msg_info_t), request_info->nbytes);
     assert(PyString_Check(result));
 
     Py_ssize_t total_payload_bytes;
@@ -25,7 +25,7 @@ pygas_async_request_handler(void* request) {
             int frag_payload_bytes = reply_info->nbytes = min(total_payload_bytes-offset, PYGAS_MAX_PAYLOAD);
             reply_info->fragment_num = offset / PYGAS_MAX_PAYLOAD;
             memcpy(&reply[sizeof(msg_info_t)], data+offset, frag_payload_bytes);
-            gasnet_AMRequestMedium0(dest, APPLY_DYNAMIC_REPLY_HIDX, reply, sizeof(msg_info_t)+frag_payload_bytes);
+            gasnet_AMRequestMedium0(dest, RPC_REPLY_HIDX, reply, sizeof(msg_info_t)+frag_payload_bytes);
         }
     } else /* PYGAS_BIGMSG_RMALLOC */ {
         size_t total_bytes = sizeof(msg_info_t) + total_payload_bytes;
@@ -39,7 +39,7 @@ pygas_async_request_handler(void* request) {
         memcpy(reply+sizeof(msg_info_t), data, total_payload_bytes);
 
         long int raddr = rmalloc(dest, total_bytes);
-        gasnet_AMRequestLong0(dest, APPLY_DYNAMIC_REPLY_HIDX, reply, total_bytes, (void*) raddr);
+        gasnet_AMRequestLong0(dest, RPC_REPLY_HIDX, reply, total_bytes, (void*) raddr);
     }
 
     //free(request);
@@ -47,7 +47,7 @@ pygas_async_request_handler(void* request) {
 }
 
 void
-pygas_apply_dynamic_request_handler(gasnet_token_t token, char* fragment, size_t frag_size)
+pygas_rpc_request_handler(gasnet_token_t token, char* fragment, size_t frag_size)
 {
     assert(frag_size == sizeof(msg_info_t)+((msg_info_t*)&fragment[0])->nbytes);
 
@@ -57,7 +57,7 @@ pygas_apply_dynamic_request_handler(gasnet_token_t token, char* fragment, size_t
 }
 
 void
-pygas_apply_dynamic_reply_handler(gasnet_token_t token, char* fragment, size_t frag_size)
+pygas_rpc_reply_handler(gasnet_token_t token, char* fragment, size_t frag_size)
 {
     assert(frag_size == sizeof(msg_info_t)+((msg_info_t*)fragment)->nbytes);
 
@@ -70,7 +70,7 @@ pygas_apply_dynamic_reply_handler(gasnet_token_t token, char* fragment, size_t f
 }
 
 PyObject *
-set_apply_dynamic_handler(PyObject *dummy, PyObject *args)
+set_rpc_handler(PyObject *dummy, PyObject *args)
 {
     PyObject *result = NULL;
     PyObject *temp;
@@ -81,8 +81,8 @@ set_apply_dynamic_handler(PyObject *dummy, PyObject *args)
             return NULL;
         }
         Py_XINCREF(temp);         /* Add a reference to new callback */
-        Py_XDECREF(apply_dynamic_handler);  /* Dispose of previous callback */
-        apply_dynamic_handler = temp;       /* Remember new callback */
+        Py_XDECREF(rpc_handler);  /* Dispose of previous callback */
+        rpc_handler = temp;       /* Remember new callback */
         /* Boilerplate to return "None" */
         Py_INCREF(Py_None);
         result = Py_None;
@@ -91,7 +91,7 @@ set_apply_dynamic_handler(PyObject *dummy, PyObject *args)
 }
 
 PyObject *
-pygas_gasnet_apply_dynamic(PyObject *self, PyObject *args)
+pygas_gasnet_rpc(PyObject *self, PyObject *args)
 {
     char *data;
     int dest = 0, total_payload_bytes = 0;
@@ -111,7 +111,7 @@ pygas_gasnet_apply_dynamic(PyObject *self, PyObject *args)
             request_info->nbytes = frag_payload_bytes;
             request_info->fragment_num = offset / PYGAS_MAX_PAYLOAD;
             memcpy(&request[sizeof(msg_info_t)], data+offset, request_info->nbytes);
-            gasnet_AMRequestMedium0(dest, APPLY_DYNAMIC_REQUEST_HIDX, &request,
+            gasnet_AMRequestMedium0(dest, RPC_REQUEST_HIDX, &request,
                     sizeof(msg_info_t)+request_info->nbytes);
         }
     } else /* PYGAS_BIGMSG_RMALLOC */ {
@@ -126,7 +126,7 @@ pygas_gasnet_apply_dynamic(PyObject *self, PyObject *args)
         memcpy(request+sizeof(msg_info_t), data, total_payload_bytes);
 
         long int raddr = rmalloc(dest, total_bytes);
-        gasnet_AMRequestLong0(dest, APPLY_DYNAMIC_REQUEST_HIDX, request, total_bytes, (void*) raddr);
+        gasnet_AMRequestLong0(dest, RPC_REQUEST_HIDX, request, total_bytes, (void*) raddr);
     }
 
     PYGAS_GASNET_BLOCKUNTIL(reply != NULL);

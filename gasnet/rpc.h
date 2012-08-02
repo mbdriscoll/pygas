@@ -14,22 +14,22 @@ typedef struct msg_info {
     size_t total_payload_bytes;
 } msg_info_t;
 
-static PyObject *apply_dynamic_handler;
+static PyObject *rpc_handler;
 
 int
 pygas_async_request_handler(void* request);
 
 void
-pygas_apply_dynamic_request_handler(gasnet_token_t token, char* fragment, size_t frag_size);
+pygas_rpc_request_handler(gasnet_token_t token, char* fragment, size_t frag_size);
 
 void
-pygas_apply_dynamic_reply_handler(gasnet_token_t token, char* fragment, size_t frag_size);
+pygas_rpc_reply_handler(gasnet_token_t token, char* fragment, size_t frag_size);
 
 extern PyObject *
-set_apply_dynamic_handler(PyObject *dummy, PyObject *args);
+set_rpc_handler(PyObject *dummy, PyObject *args);
 
 extern PyObject *
-pygas_gasnet_apply_dynamic(PyObject *self, PyObject *args);
+pygas_gasnet_rpc(PyObject *self, PyObject *args);
 
 /* The maximum payload per message. This is equivalent to the max
  * Medium AM size minus the header size. */

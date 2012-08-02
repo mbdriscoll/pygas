@@ -6,8 +6,8 @@
 
 /* The main GASNet handler table. */
 gasnet_handlerentry_t handler_table[] = {
-    {APPLY_DYNAMIC_REQUEST_HIDX,   pygas_apply_dynamic_request_handler},
-    {APPLY_DYNAMIC_REPLY_HIDX,     pygas_apply_dynamic_reply_handler},
+    {RPC_REQUEST_HIDX,   pygas_rpc_request_handler},
+    {RPC_REPLY_HIDX,     pygas_rpc_reply_handler},
     {RMALLOC_REQUEST_HIDX,         pygas_rmalloc_request_handler},
     {RMALLOC_REPLY_HIDX,           pygas_rmalloc_reply_handler}
 };
@@ -210,11 +210,11 @@ static PyMethodDef pygas_gasnet_methods[] = {
     {"coll_init",      pygas_gasnet_coll_init,      METH_VARARGS, "Initialize collectives."},
     {"broadcast",      pygas_gasnet_coll_broadcast, METH_VARARGS, "Broadcast."},
 
-    // My functions.
-    {"apply_dynamic",  pygas_gasnet_apply_dynamic,  METH_VARARGS, "Apply a dynamic function"},
-    {"set_apply_dynamic_handler",  set_apply_dynamic_handler,  METH_VARARGS, "Set the request hanlder that applies a dynamic function"},
-    {"obj_to_capsule",    pygas_obj_to_capsule,  METH_VARARGS, "Encapsulate the given object."},
-    {"capsule_to_obj",    pygas_capsule_to_obj,  METH_VARARGS, "Decapsulate the given capsule."},
+    // Internal functions.
+    {"_rpc",               pygas_gasnet_rpc,         METH_VARARGS, "Execute a remote procedure call"},
+    {"_set_rpc_handler",   set_rpc_handler,          METH_VARARGS, "Set the request handler that executes a remote procedure. For internal use only."},
+    {"_obj_to_capsule",    pygas_obj_to_capsule,     METH_VARARGS, "Encapsulate the given object."},
+    {"_capsule_to_obj",    pygas_capsule_to_obj,     METH_VARARGS, "Decapsulate the given capsule."},
 
     // Sentinel
     {NULL,             NULL}

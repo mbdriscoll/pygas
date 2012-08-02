@@ -9,8 +9,8 @@
 #define MYTHREAD (gasnet_mynode())
 
 /* Active message handler id's. */
-#define APPLY_DYNAMIC_REQUEST_HIDX 144
-#define APPLY_DYNAMIC_REPLY_HIDX   145
+#define RPC_REQUEST_HIDX 144
+#define RPC_REPLY_HIDX   145
 #define RMALLOC_REQUEST_HIDX       146
 #define RMALLOC_REPLY_HIDX         147
 

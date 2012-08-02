@@ -7,7 +7,7 @@ from cPickle import loads as deserialize
 from cPickle import dumps as serialize
 
 import gasnet
-from gasnet import apply_dynamic
+from gasnet import _rpc as rpc
 
 gasnet.init()
 gasnet.attach()
@@ -30,13 +30,13 @@ SETATTR = 1
 CALL    = 2
 RESOLVE = 3
 
-def _apply_dynamic_handler(data):
+def _rpc_handler(data):
     """
     This handler is invoked asynchronously on remote interpreters to implement
     one-sided operations.
     """
     op, capsule, name, args, kwargs = deserialize(data)
-    obj = gasnet.capsule_to_obj(capsule) if capsule else __builtins__
+    obj = gasnet._capsule_to_obj(capsule) if capsule else __builtins__
     if op is GETATTR:
         result = getattr(obj,name)
     elif op is SETATTR:
@@ -49,7 +49,7 @@ def _apply_dynamic_handler(data):
         raise NotImplementedError("Cannot apply op: %s" % op)
     return serialize(result)
 
-gasnet.set_apply_dynamic_handler(_apply_dynamic_handler)
+gasnet._set_rpc_handler(_rpc_handler)
 
 class Proxy(object):
     """
@@ -67,7 +67,7 @@ class Proxy(object):
         :param obj: the object to be wrapped
         :type obj: object
         """
-        object.__setattr__(self, "capsule", gasnet.obj_to_capsule(obj))
+        object.__setattr__(self, "capsule", gasnet._obj_to_capsule(obj))
         object.__setattr__(self, "owner", MYTHREAD)
 
     def __getstate__(self):
@@ -92,7 +92,7 @@ class Proxy(object):
         :type name: string
         """
         data = serialize((GETATTR, self.capsule, name, None, None))
-        result = apply_dynamic(self.owner, data)
+        result = rpc(self.owner, data)
         answer = deserialize(result)
         return answer
 
@@ -107,7 +107,7 @@ class Proxy(object):
         :rtype: None
         """
         data = serialize((SETATTR, self.capsule, name, [value], None))
-        result = apply_dynamic(self.owner, data)
+        result = rpc(self.owner, data)
         return deserialize(result)
 
     def __call__(self, *args, **kwargs):
@@ -122,7 +122,7 @@ class Proxy(object):
         :rtype: object
         """
         data = serialize((CALL, self.capsule, '__call__', args, kwargs))
-        result = apply_dynamic(self.owner, data)
+        result = rpc(self.owner, data)
         return deserialize(result)
 
     def resolve(self):
@@ -132,7 +132,7 @@ class Proxy(object):
         :rtype: object
         """
         data = serialize((RESOLVE, self.capsule, None, None, None))
-        result = apply_dynamic(self.owner, data)
+        result = rpc(self.owner, data)
         return deserialize(result)
 
 
