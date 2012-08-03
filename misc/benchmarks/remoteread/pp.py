@@ -41,8 +41,9 @@ def main():
         times = [test_size(size) for i in range(NUM_TRIALS)]
         rates = [gbits/s for s in times]
         if MYTHREAD == 0:
-             print("% 10d" % size, 1e6*np.mean(times), 1e6*np.std(times), \
-                                   np.mean(rates), np.std(rates))
+             print("% 10d, %f, %f, %f, %f" % \
+                   (size, 1e6*np.mean(times), 1e6*np.std(times), \
+                    np.mean(rates), np.std(rates)))
         stdout.flush()
 
 if __name__ == '__main__':
