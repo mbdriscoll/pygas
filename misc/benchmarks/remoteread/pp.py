@@ -5,7 +5,7 @@ from time import time
 from sys import stdout
 import numpy as np
 
-NUM_TRIALS = 100
+NUM_TRIALS = 1
 
 class ObjectManager(object):
     def __init__(self, size):
@@ -34,15 +34,15 @@ def main():
     (options, args) = parser.parse_args()
 
     if MYTHREAD == 0:
-        print "# size\tavg_time_us\tstddev_times\tavg_rates_gbs\tstdev_rates"
+        print("# size\tavg_time_us\tstddev_times\tavg_rates_gbs\tstdev_rates")
 
     for size in [2**i for i in range(options.min_exp, options.max_exp)]:
         gbits = size * 8e-9
         times = [test_size(size) for i in range(NUM_TRIALS)]
-        rates = map(lambda s: gbits/s, times)
+        rates = [gbits/s for s in times]
         if MYTHREAD == 0:
-             print "% 10d" % size, 1e6*np.mean(times), 1e6*np.std(times), \
-                                   np.mean(rates), np.std(rates)
+             print("% 10d" % size, 1e6*np.mean(times), 1e6*np.std(times), \
+                                   np.mean(rates), np.std(rates))
         stdout.flush()
 
 if __name__ == '__main__':

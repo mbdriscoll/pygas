@@ -8,11 +8,11 @@ pygas_async_request_handler(void* request) {
     gasnet_node_t dest = request_info->sender;
 
     PyObject *result = PyObject_CallFunction(rpc_handler, "(s#)", (char*) request+sizeof(msg_info_t), request_info->nbytes);
-    assert(PyString_Check(result));
+    assert(PyBytes_Check(result));
 
     Py_ssize_t total_payload_bytes;
     char *data;
-    PyString_AsStringAndSize(result, &data, &total_payload_bytes);
+    PyBytes_AsStringAndSize(result, &data, &total_payload_bytes);
     if (PYGAS_BIGMSG_PIPELINE) {
         char reply[min(gasnet_AMMaxMedium(), sizeof(msg_info_t)+total_payload_bytes)];
         msg_info_t *reply_info = (msg_info_t*) &reply[0];
