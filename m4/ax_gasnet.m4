@@ -61,18 +61,18 @@ if test "x$want_gasnet" = "xyes"; then
     GASNET_INCLUDE_DIR="$ac_gasnet_path/include"
     GASNET_CONDUIT_INCLUDE_DIR="$ac_gasnet_path/include/$ac_gasnet_conduit-conduit"
     GASNET_LIBRARY_DIR="$ac_gasnet_path/lib"
-    GASNET_LIBRARY_BASENAME="gasnet-$ac_gasnet_conduit-par"
+    GASNET_LIBRARY_BASENAME="gasnet-$ac_gasnet_conduit-seq"
 
     OLD_CPPFLAGS=$CPPFLAGS
     OLD_LDFLAGS=$LDFLAGS
     CPPFLAGS="$CPPFLAGS -I$GASNET_INCLUDE_DIR -I$GASNET_CONDUIT_INCLUDE_DIR"
-    CPPFLAGS="$CPPFLAGS -DGASNET_PAR"
+    CPPFLAGS="$CPPFLAGS -DGASNET_SEQ"
     LDFLAGS="$LDFLAGS -L$GASNET_LIBRARY_DIR"
 
     if test "x$ac_gasnet_conduit" = "xibv"; then
         CPPFLAGS="$CPPFLAGS -DGASNET_CONDUIT_IBV"
     fi
-    
+
     AC_CHECK_HEADER([gasnet.h], [], AC_MSG_ERROR([Cannot find GASNet headers.]))
 
     dnl AC_SEARCH_LIBS([gasnetc_attach], [$GASNET_LIBRARY_BASENAME],
@@ -88,7 +88,7 @@ if test "x$want_gasnet" = "xyes"; then
     LDFLAGS=$OLD_LDFLAGS
 
     AC_SUBST(GASNET_CONDUIT_INCLUDE_FILE,
-             "$GASNET_CONDUIT_INCLUDE_DIR/$ac_gasnet_conduit-par.mak")
+             "$GASNET_CONDUIT_INCLUDE_DIR/$ac_gasnet_conduit-seq.mak")
     if test "x$ac_gasnet_conduit" = "xmpi" ; then
         AX_MPI([], AC_MSG_WARN([Cannot configure MPI conduit.]))
         AC_SUBST(GASNET_CONDUIT_LIBS, $MPILIBS)
