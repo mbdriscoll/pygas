@@ -13,7 +13,7 @@ class ObjectManager(object):
 
 def test_size(size):
     om = ObjectManager(size) if MYTHREAD is 1 else None
-    omp = share(om, from_thread=1)
+    omp = TEAM_WORLD.share(om, from_thread=1)
 
     if MYTHREAD == 0:
         start_time = time()
@@ -24,7 +24,7 @@ def test_size(size):
     else:
         duration = 1
 
-    barrier()
+    TEAM_WORLD.barrier()
     return duration
 
 def main():

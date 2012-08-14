@@ -23,7 +23,7 @@ atexit.register(gasnet.exit)
 
 """
 Use enums to do dynamic dispatch inside handler. We may want to
-write standalone handlers for each eventually.
+write standalone handlers for each eventually. TODO hide these.
 """
 GETATTR = 0
 SETATTR = 1
@@ -50,6 +50,61 @@ def _rpc_handler(data):
     return serialize(result)
 
 gasnet._set_rpc_handler(_rpc_handler)
+
+class Team(object):
+    """
+    This class represents a collection of gasnet threads. It is roughly
+    equivalent to an MPI communicator. All collective operations must
+    be performed in the context of teams.
+    """
+    def __init__(self, team_id):
+        """ Create a new team with the given id"""
+        self._team_id = team_id
+
+    def broadcast(self, obj, from_thread=0):
+        """
+        Broadcast copies of the given object. This is a collective operation.
+
+        :param obj: the object to be copied.
+        :type obj: object
+        :param from_thread: the thread wishing to copy `obj`.
+        :type from_thread: int
+        :returns: A copy of the given object.
+        """
+        data = serialize(obj) if MYTHREAD == from_thread else None
+        answer = gasnet.broadcast(self._team_id, data, from_thread)
+        return deserialize(answer)
+
+    def barrier(self, bid=0, flags=gasnet.BARRIERFLAG_ANONYMOUS):
+        """
+        Block until all threads have executed the barrier. This is a
+        collective operation.
+
+        :param bid: the barrier id number
+        :type bid: int
+        """
+        assert self._team_id == gasnet.team_all(), \
+               "Barriers only supported for TEAM_WORLD at the moment."
+        gasnet.barrier_notify(bid, flags)
+        gasnet.barrier_wait(bid, flags)
+
+    def share(self, obj, from_thread=0):
+        """
+        Create and broadcast a :class:`Proxy` to the given object. This is a collective operation. It is effectively syntactic sugar for::
+
+        	TEAM_WORLD.broadcast(Proxy(obj), from_thread=...)
+
+        :param obj: the object to be shared.
+        :type obj: object
+        :param from_thread: the thread wishing to share `obj`.
+        :type from_thread: int
+        :rtype: :class:`Proxy`
+        """
+        proxy = Proxy(obj) if MYTHREAD == from_thread else None
+        return self.broadcast(Proxy(obj), from_thread=from_thread)
+
+TEAM_WORLD = Team(gasnet.team_all())
+
 
 class Proxy(object):
     """
@@ -135,45 +190,6 @@ class Proxy(object):
         result = rpc(self.owner, data)
         return deserialize(result)
 
-
-def share(obj, from_thread=0):
-    """
-    Create and broadcast a :class:`Proxy` to the given object. This is a collective operation. It is effectively syntactic sugar for::
-
-    	broadcast(Proxy(obj), from_thread=...)
-
-    :param obj: the object to be shared.
-    :type obj: object
-    :param from_thread: the thread wishing to share `obj`.
-    :type from_thread: int
-    :rtype: :class:`Proxy`
-    """
-    proxy = Proxy(obj) if MYTHREAD == from_thread else None
-    return broadcast(Proxy(obj), from_thread=from_thread)
-
-def barrier(bid=0, flags=gasnet.BARRIERFLAG_ANONYMOUS):
-    """
-    Block until all threads have executed the barrier. This is a collective operation.
-
-    :param bid: the barrier id number
-    :type bid: int
-    """
-    gasnet.barrier_notify(bid, flags)
-    gasnet.barrier_wait(bid, flags)
-
-def broadcast(obj, from_thread=0):
-    """
-    Broadcast copies of the given object. This is a collective operation.
-
-    :param obj: the object to be copied.
-    :type obj: object
-    :param from_thread: the thread wishing to copy `obj`.
-    :type from_thread: int
-    :returns: A copy of the given object.
-    """
-    data = serialize(obj) if MYTHREAD == from_thread else None
-    answer = gasnet.broadcast(data, from_thread)
-    return deserialize(answer)
 
 class SplitTimer(object):
     """

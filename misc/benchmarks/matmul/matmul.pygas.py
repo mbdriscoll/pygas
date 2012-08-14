@@ -59,8 +59,8 @@ def main():
     global A_directory, B_directory
     dm_a = DataManager(A_ij)
     dm_b = DataManager(B_ij)
-    A_directory = [[share(dm_a, from_thread=coords_to_tid(i,j)) for j in range(sqrt_P)] for i in range(sqrt_P)]
-    B_directory = [[share(dm_b, from_thread=coords_to_tid(i,j)) for j in range(sqrt_P)] for i in range(sqrt_P)]
+    A_directory = [[TEAM_WORLD.share(dm_a, from_thread=coords_to_tid(i,j)) for j in range(sqrt_P)] for i in range(sqrt_P)]
+    B_directory = [[TEAM_WORLD.share(dm_b, from_thread=coords_to_tid(i,j)) for j in range(sqrt_P)] for i in range(sqrt_P)]
 
     cannon_C_ij, running_time = matmul_cannon()
     if MYTHREAD == 0:

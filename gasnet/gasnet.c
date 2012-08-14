@@ -142,26 +142,28 @@ pygas_gasnet_coll_broadcast(PyObject *self, PyObject *args)
 {
     char* data;
     Py_ssize_t len;
+    gasnet_team_handle_t team_id;
     gasnet_node_t from_thread = 0;
-    if (!PyArg_ParseTuple(args, "z#i", &data, &len, &from_thread))
+    if (!PyArg_ParseTuple(args, "iz#i", &team_id, &data, &len, &from_thread))
         return NULL;
 
-    const int flags = GASNET_COLL_IN_MYSYNC|GASNET_COLL_OUT_MYSYNC|GASNET_COLL_LOCAL;
-
     // broadcast size of serialized object to reserve space
-    gasnet_coll_broadcast(GASNET_TEAM_ALL, &len, from_thread,
+    const int flags = GASNET_COLL_IN_MYSYNC|GASNET_COLL_OUT_MYSYNC|GASNET_COLL_LOCAL;
+    gasnet_coll_broadcast(team_id, &len, from_thread,
                           &len, sizeof(Py_ssize_t), flags);
 
+    // allocate space for object on recving threads
     if (MYTHREAD != from_thread)
         data = (char*) malloc(len);
 
     // broadcast serialized object
-    gasnet_coll_broadcast(GASNET_TEAM_ALL, data, from_thread, data, len, flags);
+    gasnet_coll_broadcast(team_id, data, from_thread, data, len, flags);
+    PyObject* answer = PyString_FromStringAndSize(data, len);
 
     if (MYTHREAD != from_thread)
         free(data);
 
-    return PyString_FromStringAndSize(data, len);
+    return answer;
 }
 
 static PyObject *
@@ -188,6 +190,14 @@ pygas_capsule_to_obj(PyObject *self, PyObject *args)
     return obj;
 }
 
+static PyObject *
+pygas_gasnet_team_all(PyObject *self, PyObject *args)
+{
+    if (!PyArg_ParseTuple(args, ""))
+        return NULL;
+    return PyLong_FromLong(GASNET_TEAM_ALL);
+}
+
 static PyMethodDef pygas_gasnet_methods[] = {
     {"init",           pygas_gasnet_init,           METH_VARARGS, "Bootstrap GASNet job."},
     {"exit",           pygas_gasnet_exit,           METH_VARARGS, "Terminate GASNet runtime."},
@@ -205,6 +215,7 @@ static PyMethodDef pygas_gasnet_methods[] = {
     // Collectives. TODO refactor into separate file
     {"coll_init",      pygas_gasnet_coll_init,      METH_VARARGS, "Initialize collectives."},
     {"broadcast",      pygas_gasnet_coll_broadcast, METH_VARARGS, "Broadcast."},
+    {"team_all",       pygas_gasnet_team_all,       METH_VARARGS, "Get the value of GASNET_TEAM_ALL."},
 
     // Internal functions.
     {"_rpc",               pygas_gasnet_rpc,         METH_VARARGS, "Execute a remote procedure call"},
