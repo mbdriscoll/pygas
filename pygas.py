@@ -148,10 +148,8 @@ def share(obj, from_thread=0):
     :type from_thread: int
     :rtype: :class:`Proxy`
     """
-    if MYTHREAD == from_thread:
-    	return broadcast(Proxy(obj), from_thread=from_thread)
-    else:
-    	return broadcast(None, from_thread=from_thread)
+    proxy = Proxy(obj) if MYTHREAD == from_thread else None
+    return broadcast(Proxy(obj), from_thread=from_thread)
 
 def barrier(bid=0, flags=gasnet.BARRIERFLAG_ANONYMOUS):
     """
@@ -173,15 +171,9 @@ def broadcast(obj, from_thread=0):
     :type from_thread: int
     :returns: A copy of the given object.
     """
-    if MYTHREAD == from_thread:
-        data = serialize(obj)
-        size = len(data)
-        gasnet.broadcast(size, from_thread)
-    else:
-        size = gasnet.broadcast(0, from_thread)
-        data = '?'*size
-    gasnet.broadcast(data, from_thread)
-    return deserialize(data)
+    data = serialize(obj) if MYTHREAD == from_thread else None
+    answer = gasnet.broadcast(data, from_thread)
+    return deserialize(answer)
 
 class SplitTimer(object):
     """

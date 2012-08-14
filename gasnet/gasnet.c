@@ -140,32 +140,28 @@ pygas_gasnet_coll_init(PyObject *self, PyObject *args)
 static PyObject *
 pygas_gasnet_coll_broadcast(PyObject *self, PyObject *args)
 {
-    int from_thread = 0;
-    PyObject *obj;
-    Py_buffer pb;
-    if (!PyArg_ParseTuple(args, "Oi", &obj, &from_thread)) {
-        printf("Can't parse args\n");
+    char* data;
+    Py_ssize_t len;
+    gasnet_node_t from_thread = 0;
+    if (!PyArg_ParseTuple(args, "z#i", &data, &len, &from_thread))
         return NULL;
-    }
 
     const int flags = GASNET_COLL_IN_MYSYNC|GASNET_COLL_OUT_MYSYNC|GASNET_COLL_LOCAL;
 
-    if (PyObject_CheckBuffer(obj)) {
-        if (PyObject_GetBuffer(obj, &pb, PyBUF_C_CONTIGUOUS))
-            printf("Object can't GetBuffer\n");
-        gasnet_coll_broadcast(GASNET_TEAM_ALL, pb.buf, from_thread,
-                              pb.buf, pb.len, flags);
-        PyBuffer_Release(&pb);
-        Py_RETURN_NONE;
-    } else if (PyInt_Check(obj)) {
-        long val = PyInt_AsLong(obj);
-        gasnet_coll_broadcast(GASNET_TEAM_ALL, &val, from_thread,
-                              &val, sizeof(long), flags);
-        return PyInt_FromLong(val);
-    } else {
-        printf("Can't broadcast Python type not buf, int\n");
-        return NULL;
-    }
+    // broadcast size of serialized object to reserve space
+    gasnet_coll_broadcast(GASNET_TEAM_ALL, &len, from_thread,
+                          &len, sizeof(Py_ssize_t), flags);
+
+    if (MYTHREAD != from_thread)
+        data = (char*) malloc(len);
+
+    // broadcast serialized object
+    gasnet_coll_broadcast(GASNET_TEAM_ALL, data, from_thread, data, len, flags);
+
+    if (MYTHREAD != from_thread)
+        free(data);
+
+    return PyString_FromStringAndSize(data, len);
 }
 
 static PyObject *
