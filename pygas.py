@@ -3,7 +3,8 @@ from __future__ import division
 import timeit # for timer context manager
 import atexit   # for registering gasnet_exit at termination
 
-from pickle import loads as deserialize, dumps as serialize
+from cPickle import loads as deserialize
+from cPickle import dumps as serialize
 
 import gasnet
 from gasnet import _rpc as rpc

@@ -157,11 +157,11 @@ pygas_gasnet_coll_broadcast(PyObject *self, PyObject *args)
                               pb.buf, pb.len, flags);
         PyBuffer_Release(&pb);
         Py_RETURN_NONE;
-    } else if (PyLong_Check(obj)) {
-        long val = PyLong_AsLong(obj);
+    } else if (PyInt_Check(obj)) {
+        long val = PyInt_AsLong(obj);
         gasnet_coll_broadcast(GASNET_TEAM_ALL, &val, from_thread,
                               &val, sizeof(long), flags);
-        return PyLong_FromLong(val);
+        return PyInt_FromLong(val);
     } else {
         printf("Can't broadcast Python type not buf, int\n");
         return NULL;
@@ -192,7 +192,7 @@ pygas_capsule_to_obj(PyObject *self, PyObject *args)
     return obj;
 }
 
-static PyMethodDef GasnetMethods[] = {
+static PyMethodDef pygas_gasnet_methods[] = {
     {"init",           pygas_gasnet_init,           METH_VARARGS, "Bootstrap GASNet job."},
     {"exit",           pygas_gasnet_exit,           METH_VARARGS, "Terminate GASNet runtime."},
     {"attach",         pygas_gasnet_attach,         METH_NOARGS,  "Initialize and setup node."},
@@ -220,22 +220,11 @@ static PyMethodDef GasnetMethods[] = {
     {NULL,             NULL}
 };
 
-static struct PyModuleDef gasnetmodule = {
-    PyModuleDef_HEAD_INIT,
-    "gasnet",
-    NULL, /* TODO docs */
-    -1,       /* size of per-interpreter state of the module,
-                 or -1 if the module keeps state in global variables. */
-    GasnetMethods
-};
-
 PyMODINIT_FUNC
-PyInit_gasnet(void)
+initgasnet(void)
 {
-    PyObject *module = PyModule_Create(&gasnetmodule);
+    PyObject *module = Py_InitModule3("gasnet", pygas_gasnet_methods, "Interface to GASNet.");
 
     PyModule_AddIntConstant(module, "BARRIERFLAG_ANONYMOUS", GASNET_BARRIERFLAG_ANONYMOUS);
     PyModule_AddIntConstant(module, "BARRIERFLAG_MISMATCH",  GASNET_BARRIERFLAG_MISMATCH);
-
-    return module;
 }
