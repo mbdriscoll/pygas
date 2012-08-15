@@ -143,24 +143,25 @@ pygas_gasnet_coll_broadcast(PyObject *self, PyObject *args)
     char* data;
     Py_ssize_t len;
     gasnet_team_handle_t team_id;
-    gasnet_node_t from_thread = 0;
-    if (!PyArg_ParseTuple(args, "iz#i", &team_id, &data, &len, &from_thread))
+    gasnet_node_t from_rank = 0;
+    if (!PyArg_ParseTuple(args, "iz#i", &team_id, &data, &len, &from_rank))
         return NULL;
 
     // broadcast size of serialized object to reserve space
-    const int flags = GASNET_COLL_IN_MYSYNC|GASNET_COLL_OUT_MYSYNC|GASNET_COLL_LOCAL;
-    gasnet_coll_broadcast(team_id, &len, from_thread,
+    const int flags = GASNET_COLL_IN_ALLSYNC|GASNET_COLL_OUT_ALLSYNC|GASNET_COLL_LOCAL;
+    gasnet_coll_broadcast(team_id, &len, from_rank,
                           &len, sizeof(Py_ssize_t), flags);
 
     // allocate space for object on recving threads
-    if (MYTHREAD != from_thread)
+    gasnet_node_t myrank = gasnete_coll_team_node2rank(team_id, MYTHREAD);
+    if (myrank != from_rank)
         data = (char*) malloc(len);
 
     // broadcast serialized object
-    gasnet_coll_broadcast(team_id, data, from_thread, data, len, flags);
+    gasnet_coll_broadcast(team_id, data, from_rank, data, len, flags);
     PyObject* answer = PyString_FromStringAndSize(data, len);
 
-    if (MYTHREAD != from_thread)
+    if (myrank != from_rank)
         free(data);
 
     return answer;
@@ -198,6 +199,59 @@ pygas_gasnet_team_all(PyObject *self, PyObject *args)
     return PyLong_FromLong(GASNET_TEAM_ALL);
 }
 
+static PyObject *
+pygas_gasnet_team_size(PyObject *self, PyObject *args)
+{
+    gasnete_coll_team_t team_id;
+    if (!PyArg_ParseTuple(args, "l", &team_id))
+        return NULL;
+    gasnet_node_t images = gasnete_coll_team_size(team_id);
+    return PyLong_FromLong(images);
+}
+
+static PyObject *
+pygas_gasnet_team_split(PyObject *self, PyObject *args)
+{
+    gasnet_node_t parent, color, relrank;
+    if (!PyArg_ParseTuple(args, "lll", &parent, &color, &relrank))
+        return NULL;
+
+    gasnet_seginfo_t scratch;
+    scratch.size = 4*1024*1024; // TODO how to pick this
+    scratch.addr = malloc(scratch.size);
+
+    gasnet_team_handle_t team =
+        gasnet_coll_team_split(parent, color, relrank, &scratch);
+
+    return PyLong_FromLong(team);
+}
+
+static PyObject *
+pygas_gasnet_team_rank2node(PyObject *self, PyObject *args)
+{
+    gasnete_coll_team_t team_id;
+    gasnet_image_t rank;
+    if (!PyArg_ParseTuple(args, "ll", &team_id, &rank))
+        return NULL;
+
+    gasnet_node_t node = gasnete_coll_team_rank2node(team_id, rank);
+
+    return PyLong_FromLong(node);
+}
+
+static PyObject *
+pygas_gasnet_team_node2rank(PyObject *self, PyObject *args)
+{
+    gasnete_coll_team_t team_id;
+    gasnet_image_t node;
+    if (!PyArg_ParseTuple(args, "ll", &team_id, &node))
+        return NULL;
+
+    gasnet_node_t rank = gasnete_coll_team_node2rank(team_id, node);
+
+    return PyLong_FromLong(rank);
+}
+
 static PyMethodDef pygas_gasnet_methods[] = {
     {"init",           pygas_gasnet_init,           METH_VARARGS, "Bootstrap GASNet job."},
     {"exit",           pygas_gasnet_exit,           METH_VARARGS, "Terminate GASNet runtime."},
@@ -215,7 +269,13 @@ static PyMethodDef pygas_gasnet_methods[] = {
     // Collectives. TODO refactor into separate file
     {"coll_init",      pygas_gasnet_coll_init,      METH_VARARGS, "Initialize collectives."},
     {"broadcast",      pygas_gasnet_coll_broadcast, METH_VARARGS, "Broadcast."},
+
+    // Teams
     {"team_all",       pygas_gasnet_team_all,       METH_VARARGS, "Get the value of GASNET_TEAM_ALL."},
+    {"team_size",      pygas_gasnet_team_size,      METH_VARARGS, "The number of threads in the given team."},
+    {"team_split",     pygas_gasnet_team_split,     METH_VARARGS, "Split a current team into subteams based on color."},
+    {"rank2node",      pygas_gasnet_team_rank2node, METH_VARARGS, "The rank of a thread within a given team."},
+    {"node2rank",      pygas_gasnet_team_node2rank, METH_VARARGS, "The global thread number of a rank within a team."},
 
     // Internal functions.
     {"_rpc",               pygas_gasnet_rpc,         METH_VARARGS, "Execute a remote procedure call"},
