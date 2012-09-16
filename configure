@@ -16263,12 +16263,12 @@ if test "x$want_gasnet" = "xyes"; then
     GASNET_INCLUDE_DIR="$ac_gasnet_path/include"
     GASNET_CONDUIT_INCLUDE_DIR="$ac_gasnet_path/include/$ac_gasnet_conduit-conduit"
     GASNET_LIBRARY_DIR="$ac_gasnet_path/lib"
-    GASNET_LIBRARY_BASENAME="gasnet-$ac_gasnet_conduit-par"
+    GASNET_LIBRARY_BASENAME="gasnet-$ac_gasnet_conduit-seq"
 
     OLD_CPPFLAGS=$CPPFLAGS
     OLD_LDFLAGS=$LDFLAGS
     CPPFLAGS="$CPPFLAGS -I$GASNET_INCLUDE_DIR -I$GASNET_CONDUIT_INCLUDE_DIR"
-    CPPFLAGS="$CPPFLAGS -DGASNET_PAR"
+    CPPFLAGS="$CPPFLAGS -DGASNET_SEQ"
     LDFLAGS="$LDFLAGS -L$GASNET_LIBRARY_DIR"
 
     if test "x$ac_gasnet_conduit" = "xibv"; then
@@ -16312,7 +16312,7 @@ fi
     CPPFLAGS=$OLD_CPPFLAGS
     LDFLAGS=$OLD_LDFLAGS
 
-    GASNET_CONDUIT_INCLUDE_FILE="$GASNET_CONDUIT_INCLUDE_DIR/$ac_gasnet_conduit-par.mak"
+    GASNET_CONDUIT_INCLUDE_FILE="$GASNET_CONDUIT_INCLUDE_DIR/$ac_gasnet_conduit-seq.mak"
 
     if test "x$ac_gasnet_conduit" = "xmpi" ; then
 
