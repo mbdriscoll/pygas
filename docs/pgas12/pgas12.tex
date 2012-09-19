@@ -352,17 +352,17 @@
 %
 % paper title
 % can use linebreaks \\ within to get better formatting as desired
-\title{Le Title}
+\title{Toward PGAS Implementations of Existing, High-Level Languages}
 
 
 % author names and affiliations
 % use a multiple column layout for up to two different
 % affiliations
 
-\author{\IEEEauthorblockN{Michael Driscoll, Penporn Koanantakool, Evangelos Georganas,\\Edgar Solomonik, Katherine Yelick}
+\author{\IEEEauthorblockN{Michael Driscoll, Amir Kamil, Yili Zheng\\et alii}
 \IEEEauthorblockA{Computer Science Division\\
 University of California, Berkeley\\
-\{driscoll,penpornk,egeor,solomon,yelick\}@cs.berkeley.edu}
+\{driscoll,kamil,yzheng,etc\}@cs.berkeley.edu}
 }
 
 % conference papers do not typically use \thanks and this command
@@ -401,7 +401,9 @@ University of California, Berkeley\\
 
 
 \begin{abstract}
-The abstract goes here. DO NOT USE SPECIAL CHARACTERS, SYMBOLS, OR MATH IN YOUR TITLE OR ABSTRACT.
+% The abstract goes here. DO NOT USE SPECIAL CHARACTERS, SYMBOLS, OR MATH IN YOUR TITLE OR ABSTRACT.
+
+High-level languages such as Python and Ruby have begun making inroads into computation science workflows. We discuss the potential benefits and challenges of PGAS implementations of such languages, and we present initial performance results from a PGAS implementation of Python, dubbed PyGAS.
 
 \end{abstract}
 
@@ -425,23 +427,42 @@ component; formatting; style; styling;
 
 \section{Introduction}
 % no \IEEEPARstart
-This demo file is intended to serve as a ``starter file''
-for IEEE conference papers produced under \LaTeX\ using
-IEEEtran.cls version 1.7 and later.
+%This demo file is intended to serve as a ``starter file''
+%for IEEE conference papers produced under \LaTeX\ using
+%IEEEtran.cls version 1.7 and later.
 
-All manuscripts must be in English. These guidelines include complete descriptions of the fonts, spacing, and related information for producing your proceedings manuscripts. Please follow them and if you have any questions, direct them to the production editor in charge of your proceedings at Conference Publishing Services (CPS): Phone +1 (714) 821-8380 or Fax +1 (714) 761-1784.
+%All manuscripts must be in English. These guidelines include complete descriptions of the fonts, spacing, and related information for producing your proceedings manuscripts. Please follow them and if you have any questions, direct them to the production editor in charge of your proceedings at Conference Publishing Services (CPS): Phone +1 (714) 821-8380 or Fax +1 (714) 761-1784.
 % You must have at least 2 lines in the paragraph with the drop letter
 % (should never be an issue)
 
-\subsection{Subsection Heading Here}
-Subsection text here.
+High-level languages (HLLs) like Python and Ruby offer significant productivity gains over their low-level cousins like Fortan and C. HLLs provide concise syntax, interactivity, and dynamic language features that enable rapid prototyping of new algorithms. Furthermore, they have vast libraries that comprise powerful scientific toolkits and low-level APIs that allow optimization where appropriate. High-level languages are increasingly used to drive parallel applications and mediate between their components. It seems plausible, then, that a partition global address space abstraction is a natural choice for scaling to distributed memory machines. This extended abstract explores the major design considerations that may arise when extending an existing high-level language with a partitioned global address space. We present a prototype PGAS implementation of the Python language and discuss its implications for productivity and performance.
+
+We are interested in extending existing languages for several reasons. First, we aim for interoperability with existing existing code libraries, thereby ``automatically`` providing a wealth of computational tools in a PGAS environment. Second, we hope to lower the programming model's barrier to entry by making few changes to syntax and semantics. We expect programmers familiar with the ``base'' language will be able to introduce PGAS constructs into their serial programs with relative ease.
+
+\section{PyGAS: A PGAS Python Prototype}
+We have developed a prototype implementation of a PGAS extension to Python, which we call PyGAS. PyGAS implements all PGAS logic in a library and therefore requires no modification to the CPython interpreter. The library is built on the GASNet Communication Library, so PyGAS programs can target shared memory machines or distributed memory machines via a variety of interconnect technologies. PyGAS assumes the Single-Program Multiple-Data execution model, which has been established as the predominant execution model for massively parallel programs. We currently run one interpreter per thread of execution in the SPMD job.
+
+The primary PyGAS primitive for representing shared entities is the Proxy object.\footnote{The PyGAS Proxy was inspired by the Proxy object in the PyRO library, which implements remote operations on objects in a distributed system.} Proxies are initialized with an original object and subsequent operations on the Proxy are intercepted by Python's attribute resolution system, dispatched over the network, and executed on the original object. This behavior is consistent with Python's duck-typing system: the Proxy `quacks' like the original object, so it can be treated as such. For those familiar with UPC, the Proxy can be viewed as a shared pointer containing the owner's rank and the address of the original object within the owner's memory space. To exploit locality, the program can query a Proxy's owner and branch accordingly. Finally, Proxies themselves are objects, so Proxies-to-Proxies can be constructed (analagous to UPC's {\it shared-pointer-to-shared}).
+
+Method calls on shared objects are executed on the owning thread regardless of which thread called them. This behavior is a departure from UPC's ``caller computes'' semantics, but is necessary in the light of dynamic code generation and non-serializable methods. PyGAS requires two round-trips to call a shared object's method: one to resolve the method name into a bound method object and another to evaluate the method. Both the arguments and the return value are serialized as they as sent to and from the owner.
 
 
-\subsubsection{Subsubsection Heading Here}
-Subsubsection text here.
+\section{General Challenges of PGAS Extensions for HLLs}
+Existing high-level languages were not designed for parallel machines, so naturally some challenges arise in extending them with PGAS functionality.
 
-\section{Type style and Fonts}
-Wherever Times is specified, Times Roman or Times New Roman may be used. If neither is available on your system, please use the font closest in appearance to Times. Avoid using bit-mapped fonts if possible. True-Type 1 or Open Type fonts are preferred. Please embed symbol fonts, as well, for math, etc.
+\subsection{``Big-Lock'' Interpreters}
+Many modern interpreters, including CPython and CRuby, use a ``big lock'' that must be held while performing any HLL-level operations.\footnote{CPython and CRuby call their locks the Global Interpreter Lock (GIL) and Global VM Lock (GVL), respectively.} This prevents truly multithreaded programs, but performance-oriented libraries can be internally multithreaded if their operations are indepedent of the interpreter. For example, Python's numerical package NumPy can utilize a multithreaded BLAS implementation for maximum performance. Alternatively, JVM-based implementations such as JRuby and Jython avoid a global lock and can acheive true parallelism, but lack interoperability with mainline packages.
+
+Big locks also complicate the use of GASNet and other Active-Message-based communication libraries. When message handlers are invoked upon message receipt, the interrupted thread often holds the big lock, preventing the handler from safely performing HLL-level operations. As a workaround, both Ruby and Python provide a means for handlers to register secondary functions that are called asynchronously with the lock held; however, this come at a performance penalty.
+
+
+\subsection{Automatic Memory Management}
+HLLs gain much in productivity from automatic memory management, but it's not clear how to implement garbage collection schemes efficiently in a distributed environment. The challenge for Python, which uses reference counting, centers on keeping an accurate tally of references from remote Proxies. A naive approach would be to ``stop the world'' and execute a global all-to-all to update reference counts; alternatively, Proxies could update remote counts when they themselves are garbage-collected, resulting in unpredictable communication patterns. Ruby, which uses mark-and-sweep, would probably require modification of the interpreter to artificially mark objects with remote references, or distributed marking.
+
+\subsection{Object serialization}
+Serialization is a necessary step for working with complex objects (and object graphs). Currently, PyGAS uses Python's general purpose serialization module, {\tt pickle}, which provides a platform-independent object representation. In practice, we don't require such portability because parallel machines usually have uniform processor architecture. It may be possible to achieve moderate speedups by writing a new serializer that disregards portability concerns.
+
+%Wherever Times is specified, Times Roman or Times New Roman may be used. If neither is available on your system, please use the font closest in appearance to Times. Avoid using bit-mapped fonts if possible. True-Type 1 or Open Type fonts are preferred. Please embed symbol fonts, as well, for math, etc.
 
 
 % An example of a floating figure using the graphicx package.
@@ -528,6 +549,8 @@ Wherever Times is specified, Times Roman or Times New Roman may be used. If neit
 
 
 
+\section{PyGAS: PGAS for Python}
+
 \section{Conclusion}
 The conclusion goes here. this is more of the conclusion
 
@@ -537,10 +560,8 @@ The conclusion goes here. this is more of the conclusion
 % use section* for acknowledgement
 \section*{Acknowledgment}
 
-
-The authors would like to thank...
-more thanks here
-
+% Parlab citation
+Research supported by Microsoft (Award \#024263) and Intel (Award \#024894) funding and by matching funding by U.C. Discovery (Award \#DIG07-10227). Additional support comes from Par Lab affiliates National Instruments, Nokia, NVIDIA, Oracle, and Samsung.
 
 % trigger a \newpage just before the given reference
 % number - used to balance the columns on the last page
