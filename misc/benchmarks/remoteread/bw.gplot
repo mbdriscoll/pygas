@@ -1,50 +1,49 @@
-set term png
+set term post eps color
 
-set title "Bandwidth for Synchronous Remote Reads"
-set xlabel "Message size (bytes)"
-set ylabel "Gbit/s"
+set title "Bandwidth for Synchronous Remote Reads" font ",20"
+set xlabel "Message size" font ",18"
+set ylabel "Sustained Bandwidth" font ",18"
 set log x
+set log y
 set logscale x 2
+set xtics ("1B" 1, "4B" 4, "16B" 16, "64B" 64, "256B" 256, "1MB" 1024, "4MB" 4096, "16MB" 16384, "64MB" 65536, "256MB" 262144, "1GB" 1048576)
+set logscale y 2
+set ytics (\
+"32 GB/s" 32, \
+"16 GB/s" 16, \
+"8 GB/s" 8, \
+"4 GB/s" 4, \
+"2 GB/s" 2, \
+"1 GB/s" 1, \
+"512 MB/s" .5, \
+"256 MB/s" .25, \
+"128 MB/s" .125, \
+"64 MB/s" .0625, \
+"32 MB/s" .03125, \
+"16 MB/s" 0.015625, \
+"8 MB/s" 0.0078125, \
+"4 MB/s" 0.00390625, \
+"2 MB/s" 0.001953125, \
+"1 MB/s" 0.0009765, \
+"512 B/s" 0.000488, \
+"256 B/s" 0.000244 \
+)
 
-set key left bottom
+set key right bottom
+set grid
+set size ratio 0.5
 
-set style line 1 lw 1
-set style line 2 lw 1
-set style line 3 lw 1
-set style line 4 lw 1
-set style line 5 lw 1
+set style line 1 lw 3
+set style line 2 lw 3
+set style line 3 lw 3
+set style line 4 lw 3
+set style line 5 lw 3
 
-set arrow 1 from 4096,0 to 4096,3 nohead ls 5
-set label 1 "AMMaxMedium" at 4096,2.8 center
+set output "bandwidth_all.eps"
 
-set output "bandwidth_py.png"
-
-
-plot [:2097152][:] \
-'mpi.fast.out' using 1:4 ls 3 t "MPI (fast)" w lines, \
-'mpi.fast.out' using 1:4:5 ls 3 notitle w errorbars, \
-'py.out' using 1:4 ls 1 t "PyGAS" w lines, \
-'py.out' using 1:4:5 ls 1 notitle w errorbars, \
-'mpi.slow.out' using 1:4 ls 4 t "MPI (slow)" w lines, \
-'mpi.slow.out' using 1:4:5 ls 4 notitle w errorbars
-
-unset arrow 1
-unset label 1
-
-set output "bandwidth_all.png"
-
-set arrow from 4096,0 to 4096,32 nohead ls 5
-set label "AMMaxMedium" at 4096,28 center
-
-plot [:2097152][:] \
-32 t "Peak" w lines, \
-'upc.out' using 1:4 ls 2 t "UPC" w lines, \
-'upc.out' using 1:4:5 ls 2 notitle w errorbars, \
-'mpi.fast.out' using 1:4 ls 3 t "MPI (fast)" w lines, \
-'mpi.fast.out' using 1:4:5 ls 3 notitle w errorbars, \
-'py.out' using 1:4 ls 1 t "PyGAS" w lines, \
-'py.out' using 1:4:5 ls 1 notitle w errorbars, \
-'mpi.slow.out' using 1:4 ls 4 t "MPI (slow)" w lines, \
-'mpi.slow.out' using 1:4:5 ls 4 notitle w errorbars
-
-
+plot [:2097152][:64] \
+32 t "Peak" ls 5 w lines, \
+'upc.out' using 1:4 ls 2 t "UPC" w linespoints, \
+'mpi.fast.out' using 1:4 ls 3 t "mpi4py (buffer)" w linespoints, \
+'py.out' using 1:4 ls 1 t "PyGAS" w linespoints, \
+'mpi.slow.out' using 1:4 ls 4 t "mpi4py (pickle)" w linespoints
