@@ -98,9 +98,6 @@
 
 
 
-
-
-
 % *** CITATION PACKAGES ***
 %
 \usepackage{cite}
@@ -352,17 +349,27 @@
 %
 % paper title
 % can use linebreaks \\ within to get better formatting as desired
-\title{Toward PGAS Implementations of Existing, High-Level Languages}
+\title{PyGAS: A Partitioned Global Address Space Extension to Python}
 
 
 % author names and affiliations
 % use a multiple column layout for up to two different
 % affiliations
 
-\author{\IEEEauthorblockN{Oski Bear}
-\IEEEauthorblockA{Computer Science Division\\
-University of California, Berkeley\\
-\{oski\}@cs.berkeley.edu}
+\author{
+  \IEEEauthorblockN{Michael Driscoll and Amir Kamil}
+    \IEEEauthorblockA{
+      Computer Science Division\\
+      University of California, Berkeley\\
+      \{driscoll,kamil\}@cs.berkeley.edu
+    }
+  \and
+  \IEEEauthorblockN{Yili Zheng}
+    \IEEEauthorblockA{
+      Future Technologies Group\\
+      Lawrence Berkeley National Laboratory\\
+      yzheng@lbl.gov
+    }
 }
 
 % conference papers do not typically use \thanks and this command
@@ -403,8 +410,7 @@ University of California, Berkeley\\
 \begin{abstract}
 % The abstract goes here. DO NOT USE SPECIAL CHARACTERS, SYMBOLS, OR MATH IN YOUR TITLE OR ABSTRACT.
 
-High-level, productivity-oriented languages such as Python and Ruby have becoming increasingly popular as ``glue code'' in HPC applications. The PGAS model, with its own productivity advantages, seems like a promising approach for developing parallel applications in high-level languages. We discuss the potential benefits and challenges of PGAS extensions to high-level languages, and we present initial performance results from a PGAS implementation of Python, dubbed PyGAS.
-
+High-level, productivity-oriented languages such as Python have becoming increasingly popular as ``glue code'' in HPC applications. The PGAS model, with its own productivity advantages, seems like a promising approach for developing parallel applications in Python. We discuss the potential benefits and challenges of a PGAS extension to Python, and we present initial performance results from a prototype implementation which we've dubbed PyGAS.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -434,9 +440,9 @@ parallel programming; programming environments.
 % You must have at least 2 lines in the paragraph with the drop letter
 % (should never be an issue)
 
-High-level languages like Python and Ruby offer significant productivity advantages over their low-level cousins like Fortan and C.  Their concise syntax, interactivity, and dynamic language features enable rapid prototyping of new algorithms and workflows. Furthermore, they have vast libraries that comprise powerful scientific toolkits, and their low-level APIs allow for optimization where appropriate. High-level languages are increasingly used to drive parallel applications and mediate between their components. It seems plausible, then, that the equally-productive PGAS model is a natural choice for targetting distributed memory machines with high-level languages. This abstract explores the major design considerations that may arise when extending an existing high-level language with a partitioned global address space. We present a prototype PGAS implementation based on the Python language and discuss its implications for productivity and performance.
+Like other productivity-oriented languages, Python offers significant productivity advantages over its low-level cousins like Fortan and C.  Python's concise syntax, interactivity, and dynamic language features enable rapid prototyping of new algorithms and workflows. Furthermore, its vast libraries that comprise powerful scientific toolkits, and its low-level API allows for optimization where appropriate. Python is increasingly used to drive parallel applications and mediate between their components. The PGAS model, with is own productivity advantanges, is a natural choice for parallel programming in Python. This abstract explores the major design considerations that may arise when extending Python with a partitioned global address space. We present a prototype implementation and discuss its implications for productivity and performance.
 
-We are interested in extending existing languages for several reasons. First, we aim for interoperability with existing existing code libraries, thereby ``automatically`` providing a wealth of computational tools in a PGAS environment. Second, we hope to lower the programming model's barrier to entry by making as few changes to syntax and semantics as possible. We expect that programmers familiar with the ``base'' language will be able to introduce PGAS constructs into their serial programs with relative ease.
+We are interested in extending Python for several reasons. First, we aim for interoperability with existing existing code libraries, thereby ``automatically'' providing a wealth of computational tools in a PGAS environment. Second, we hope to lower the programming model's barrier to entry by making as few changes to syntax and semantics as possible. We expect that programmers familiar with Python will be able to introduce PGAS constructs into their serial programs with relative ease.
 
 \section{PyGAS: A PGAS Python Prototype}
 We have developed a prototype implementation of a PGAS extension to Python which we call PyGAS. PyGAS implements all PGAS logic in a library and therefore requires no modification to the CPython interpreter. The library is built on the GASNet Communication Library, so PyGAS programs can target shared memory machines or distributed memory machines via a variety of interconnect technologies. PyGAS is designed for the single program, multiple data (SPMD) execution model, which has been established as the predominant model for massively parallel programs. We currently run one interpreter per thread of execution in the SPMD job.
@@ -447,35 +453,35 @@ A method call on Proxy is executed on the thread with affinity to the original o
 
 
 \section{Implementation Challenges}
-Existing high-level languages were not designed for parallel machines, so challenges arise in extending them with PGAS functionality. In this section we address some of the major challenges that arise in practice.
+Python was not designed for parallel machines, so challenges arise in extending it with PGAS functionality. In this section we address some of the major challenges that arise in practice.
 
 \subsection{``Big-Lock'' Interpreters}
-Many modern interpreters, including CPython and CRuby, use a ``big lock'' that must be held while performing any language-level operations.\footnote{CPython and CRuby call their locks the Global Interpreter Lock (GIL) and Global VM Lock (GVL), respectively.} This prevents truly multithreaded programs, but there are ways to exploit on-chip parallelism. Performance-oriented libraries can be internally multithreaded if their operations are independent of the interpreter. For example, Python's numerical package Numpy can utilize a multithreaded BLAS implementation for maximum performance. Alternatively, JVM-based implementations such as JRuby and Jython avoid a global lock but lack interoperability with mainline packages.
+Python's reference implementation uses a ``big lock'' that must be held while performing any language-level operations. The Global Interpreter Lock or GIL, as it's called, prevents true multithreading in programs. Fortunately, there are ways to exploit on-chip parallelism. Performance-oriented libraries can be internally multithreaded if their operations are independent of the interpreter. For example, the numerical package Numpy can use a multithreaded BLAS implementation for maximum performance. Alternatively, PGAS extension libraries could be built on Python implementations that don't possess a global lock, such as the JVM-based Jython; however, other implementations offer little or no interoperability with mainline packages.
 
-Big locks also complicate the use of GASNet and other Active-Message-based communication libraries. When message handlers are invoked upon message receipt, the interrupted thread often holds the big lock, preventing the handler from safely performing language-level operations. As a workaround, both Ruby and Python provide a means for handlers to register secondary functions with the interpreter that are called asynchronously with the lock; however, this comes at a performance penalty.
+Big locks like the GIL also complicate the use of GASNet and other Active-Message-based communication libraries. When message handlers are invoked upon message receipt, the interrupted thread often holds the big lock, preventing the handler from safely performing language-level operations. As a workaround, PyGAS handlers register secondary functions with the interpreter that are called asynchronously with the lock; however, this comes at a performance penalty.
+
+\begin{figure*}[ht!]
+\centering
+\includegraphics{bandwidth.eps}
+% where an .eps filename suffix will be assumed under latex,
+% and a .pdf suffix will be assumed for pdflatex; or what has been declared
+% via \DeclareGraphicsExtensions.
+\caption{The bandwidth mean and standard deviation attained during a remote read operation. The fast {\tt mpi4py} variant uses an optimization limited to a subset of Python objects with data in a contiguous region of memory. TODO: bigger, change MPI to mpi4py.}
+\label{fig_bw}
+\end{figure*}
 
 
 \subsection{Automatic Memory Management}
-High-level languages gain much in productivity from automatic memory management, but implementing garbage collection schemes efficiently in a distributed environment remains a challenge. Specifically, a scheme for Python, which uses reference counting, must keep an accurate tally of references from both local object and remote Proxies. A naive approach would be to ``stop the world'' and execute a global all-to-all to update reference counts; alternatively, Proxies could update remote counts when they themselves are garbage-collected, at the expense of unpredictable communication patterns. Ruby, which uses mark-and-sweep, would probably require modification of the interpreter to artificially mark objects with remote references, or a distributed marking scheme.
+Python's automatic memory management system provides significant productivity advantages, but implementing garbage collection schemes efficiently in a distributed environment remains a challenge. Python uses reference counting, so a PyGAS must keep accurate tallies of references from both local objects and remote Proxies. A naive approach would be to ``stop the world'' and execute a global all-to-all to update reference counts; alternatively, Proxies could decrement remote counts when they themselves are garbage-collected, at the expense of extra communication.
 
 \subsection{Object serialization}
-Serialization is a necessary step for communicating arbitrary objects (and object graphs). Currently, PyGAS uses Python's general purpose serialization module {\tt pickle}, which generates a platform-independent object representation. In practice, we don't require such portability because parallel machines usually have uniform processor architecture. It might be possible to achieve moderate speedups by writing a new serializer that disregards portability concerns.
+Serialization is a necessary step for communicating arbitrary objects. Currently, PyGAS uses Python's general purpose serialization module {\tt pickle}, which generates a platform-independent object representation. In practice, PyGAS doesn't require such portability because parallel machines usually have uniform processor architecture. We expect to achieve moderate speedups by writing a custom serializer that disregards portability concerns.
 
 
 \section{Performance and Productivity Assessment}
-Initial results indicate that PyGAS provides substantial productivity advantages while maintaining performance comparable to other distributed memory programming frameworks, such as the popular {\tt mpi4py} bindings. Figure \ref{fig_bw} shows the bandwidth attainable during a remote read operation between two CPython 2.7.3 interpreters running on separate nodes of Carver, an IBM iDataPlex machine with 2.67 GHz Intel Nehalem cores and a 32 Gb/s per link Infiniband. Though well below the peak realized by a comparable UPC microbenchmark, the PyGAS prototype realizes ~10\% of available link bandwidth and outperforms the {\tt mpi4py} variant using the same serialization method. Further optimization, including a Cython implementation of the PyGAS framework, may double or triple the measured performance.
+Initial results indicate that PyGAS provides substantial productivity advantages while maintaining performance comparable to {\tt mpi4py}, the most popular MPI bindings for Python. Figure \ref{fig_bw} shows the bandwidth attainable during a remote read operation between two CPython 2.7.3 interpreters running on separate nodes of Carver, an IBM iDataPlex machine with 2.67 GHz Intel Nehalem cores and 32 Gb/s Infiniband interconnect links. The performance is weak compared to UPC: PyGAS achieves 10\% of the bandwidth seen by a UPC implementation of the same microbenchmark. However, PyGAS more than doubles the performance of the MPI bindings for large messages when using the same serialization routines. The faster MPI variant exploits the ability of some objects to store data in a contiguous memory buffer, but it is not applicable to general objects.
 
-\begin{figure}[!t]
-\centering
-\includegraphics[width=\columnwidth]{bandwidth.pdf}
-% where an .eps filename suffix will be assumed under latex, 
-% and a .pdf suffix will be assumed for pdflatex; or what has been declared
-% via \DeclareGraphicsExtensions.
-\caption{The bandwidth mean and standard deviation attained during a remote read operation. The fast {\tt mpi4py} variant uses an optimization limited to a subset of Python objects with data in a contiguous region of memory. ``AMMaxMedium" is the largest message size that can be stored in temporary network buffers; larger messages are fragmented and pipelined by the PyGAS runtime. TODO: bigger, change MPI to mpi4py.}
-\label{fig_bw}
-\end{figure}
-
-Similarly, we implemented the SUMMA algorithm for distributed matrix multiplication in PyGAS with Numpy, in Python with {\tt mpi4py} and Numpy, and in C with MPI and BLAS.\footnote{A UPC variant would require collective operations within teams, which UPC currently lacks.} Both Python codes required roughly 50\% fewer lines of code than the C+MPI variant (50 versus 110), and the code complexity was considerably reduced. All three codes exhibited roughly the same performance on four nodes of Carver, with the C variant being about 10\% faster.
+Similarly, we implemented Cannon's algorithm for distributed matrix multiplication in PyGAS with Numpy, in Python with {\tt mpi4py} and Numpy, and in C with MPI and BLAS. Both Python codes required roughly 50\% fewer lines of code than the C+MPI variant (50 versus 110), and the code complexity was considerably reduced. All three codes exhibited roughly the same performance on four nodes of Carver, with the C variant being about 10\% faster.
 
 %Wherever Times is specified, Times Roman or Times New Roman may be used. If neither is available on your system, please use the font closest in appearance to Times. Avoid using bit-mapped fonts if possible. True-Type 1 or Open Type fonts are preferred. Please embed symbol fonts, as well, for math, etc.
 
