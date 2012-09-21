@@ -459,7 +459,7 @@ Python was not design for parallelism, so naturally some challenges are when ext
 \subsection{The Global Interpreter Lock}
 Python's reference implementation uses a ``big lock'' that must be held while performing any language-level operations. The Global Interpreter Lock or GIL, as it's called, prevents true multithreading in programs. Fortunately, there are ways to exploit on-chip parallelism. Performance-oriented libraries can be internally multithreaded if their operations are independent of the interpreter. For example, the numerical package Numpy can use a multithreaded BLAS implementation. Alternatively, PGAS extension libraries could be built on Python implementations that don't possess a global lock, such as the JVM-based Jython \cite{jython}; however, other implementations offer limited interoperability with mainline packages.
 
-Big locks like the GIL also complicate the use of Active-Message-based communication libraries like GASNet. When message handlers are invoked upon message receipt, the interrupted thread often holds the big lock, preventing the handler from safely performing language-level operations. As a workaround, PyGAS handlers register secondary functions with the interpreter that are called asynchronously with the lock, incurring a moderate performance penalty.
+The GIL also complicate the use of Active-Message-based communication libraries like GASNet. When message handlers are invoked upon message receipt, the interrupted thread often holds the big lock, preventing the handler from safely performing language-level operations. As a workaround, PyGAS handlers register secondary functions with the interpreter that are called asynchronously with the lock, albeit with a moderate performance penalty.
 
 \subsection{Automatic Memory Management}
 Python's automatic memory management system provides significant productivity advantages, but implementing garbage collection schemes efficiently in a distributed environment remains a challenge. Python uses reference counting, so a PyGAS must keep accurate tallies of references from both local objects and remote Proxies. We plan to implement a scheme wherein Proxies could decrement remote counts when they themselves are garbage-collected, at the expense of extra communication.
@@ -482,7 +482,7 @@ Initial results indicate that PyGAS provides substantial productivity advantages
 \label{fig_bw}
 \end{figure}
 
-We also implemented Cannon's algorithm for distributed matrix multiplication in PyGAS, in Python with {\tt mpi4py}, and in C with MPI. Both Python codes required roughly 50\% fewer lines of code than the C+MPI variant and the code complexity was considerably reduced. All three codes exhibited roughly the same performance on four nodes of Carver, with the C variant being about 10\% faster.
+We also implemented Cannon's algorithm for distributed matrix multiplication in PyGAS, in Python with {\tt mpi4py}, and in C with MPI. Both Python codes required roughly 50\% fewer lines of code than the C+MPI variant and the code complexity was considerably reduced. All three codes exhibited roughly the same performance on four nodes of Carver, with the C variant being 10\% faster.
 
 %Wherever Times is specified, Times Roman or Times New Roman may be used. If neither is available on your system, please use the font closest in appearance to Times. Avoid using bit-mapped fonts if possible. True-Type 1 or Open Type fonts are preferred. Please embed symbol fonts, as well, for math, etc.
 
