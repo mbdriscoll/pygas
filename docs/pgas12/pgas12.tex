@@ -357,7 +357,7 @@
 % affiliations
 
 \author{
-  \IEEEauthorblockN{Michael Driscoll and Amir Kamil}
+  \IEEEauthorblockN{Michael Driscoll, Amir Kamil}
     \IEEEauthorblockA{
       Computer Science Division\\
       University of California, Berkeley\\
@@ -460,17 +460,6 @@ Python's reference implementation uses a ``big lock'' that must be held while pe
 
 Big locks like the GIL also complicate the use of GASNet and other Active-Message-based communication libraries. When message handlers are invoked upon message receipt, the interrupted thread often holds the big lock, preventing the handler from safely performing language-level operations. As a workaround, PyGAS handlers register secondary functions with the interpreter that are called asynchronously with the lock; however, this comes at a performance penalty.
 
-\begin{figure*}[ht!]
-\centering
-\includegraphics{bandwidth.eps}
-% where an .eps filename suffix will be assumed under latex,
-% and a .pdf suffix will be assumed for pdflatex; or what has been declared
-% via \DeclareGraphicsExtensions.
-\caption{The bandwidth mean and standard deviation attained during a remote read operation. The fast {\tt mpi4py} variant uses an optimization limited to a subset of Python objects with data in a contiguous region of memory. TODO: bigger, change MPI to mpi4py.}
-\label{fig_bw}
-\end{figure*}
-
-
 \subsection{Automatic Memory Management}
 Python's automatic memory management system provides significant productivity advantages, but implementing garbage collection schemes efficiently in a distributed environment remains a challenge. Python uses reference counting, so a PyGAS must keep accurate tallies of references from both local objects and remote Proxies. A naive approach would be to ``stop the world'' and execute a global all-to-all to update reference counts; alternatively, Proxies could decrement remote counts when they themselves are garbage-collected, at the expense of extra communication.
 
@@ -480,6 +469,17 @@ Serialization is a necessary step for communicating arbitrary objects. Currently
 
 \section{Performance and Productivity Assessment}
 Initial results indicate that PyGAS provides substantial productivity advantages while maintaining performance comparable to {\tt mpi4py}, the most popular MPI bindings for Python. Figure \ref{fig_bw} shows the bandwidth attainable during a remote read operation between two CPython 2.7.3 interpreters running on separate nodes of Carver, an IBM iDataPlex machine with 2.67 GHz Intel Nehalem cores and 32 Gb/s Infiniband interconnect links. The performance is weak compared to UPC: PyGAS achieves 10\% of the bandwidth seen by a UPC implementation of the same microbenchmark. However, PyGAS more than doubles the performance of the MPI bindings for large messages when using the same serialization routines. The faster MPI variant exploits the ability of some objects to store data in a contiguous memory buffer, but it is not applicable to general objects.
+
+\begin{figure}[t!]
+\centering
+\includegraphics{bandwidth.eps}
+% where an .eps filename suffix will be assumed under latex,
+% and a .pdf suffix will be assumed for pdflatex; or what has been declared
+% via \DeclareGraphicsExtensions.
+\caption{The bandwidth mean and standard deviation attained during a remote read operation. The fast {\tt mpi4py} variant uses an optimization limited to a subset of Python objects with data in a contiguous region of memory. TODO: bigger, change MPI to mpi4py.}
+\label{fig_bw}
+\end{figure}
+
 
 Similarly, we implemented Cannon's algorithm for distributed matrix multiplication in PyGAS with Numpy, in Python with {\tt mpi4py} and Numpy, and in C with MPI and BLAS. Both Python codes required roughly 50\% fewer lines of code than the C+MPI variant (50 versus 110), and the code complexity was considerably reduced. All three codes exhibited roughly the same performance on four nodes of Carver, with the C variant being about 10\% faster.
 

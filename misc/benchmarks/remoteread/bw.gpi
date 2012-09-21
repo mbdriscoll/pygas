@@ -1,7 +1,7 @@
 set term post eps color
 set output "bandwidth_all.eps"
 
-set title "Sustained Bandwidth for Synchronous Remote Reads"
+set title "Sustained Bandwidth for Remote Reads"
 set xlabel "Message size (bytes)"
 set ylabel "Sustained Bandwidth (bytes/sec)"
 set log x
@@ -9,7 +9,8 @@ set log y
 set logscale x 2
 set logscale y 2
 
-set xtics ("1" 1, "4" 4, "16" 16, "64" 64, "256" 256, "1K" 1024, "4K" 4096, "16K" 16384, "64K" 65536, "256K" 262144, "1M" 1048576)
+#set xtics ("1" 1, "4" 4, "16" 16, "64" 64, "256" 256, "1K" 1024, "4K" 4096, "16K" 16384, "64K" 65536, "256K" 262144, "1M" 1048576)
+set xtics ("1" 1, "16" 16, "256" 256, "4K" 4096, "64K" 65536, "1M" 1048576)
 set ytics (\
 "16G" 16, \
 "4G" 4, \
@@ -24,7 +25,7 @@ set ytics (\
 
 set key right bottom
 set grid
-set size 1.2,0.7
+set size 0.70,1.0
 
 plot [:2097152][:64] \
 32 t "Peak" lt 1 lw 3 w lines, \
