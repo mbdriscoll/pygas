@@ -25,7 +25,7 @@ set ytics (\
 
 set key right bottom
 set grid
-set size 0.70,1.0
+set size 0.70,0.70
 
 plot [:2097152][:64] \
 32 t "Peak" lt 1 lw 3 w lines, \
